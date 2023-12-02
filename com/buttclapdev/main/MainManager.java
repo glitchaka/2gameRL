@@ -34,7 +34,7 @@ public class MainManager {
     }
 
     private void initializer() {
-        drawSurface = new DrawSurface();
+        drawSurface = new DrawSurface(width, height);
         windows = new Windows(title, drawSurface);
         stateManager = new StateManager();
 
@@ -78,11 +78,12 @@ public class MainManager {
     }
 
     private void update() {
-        //stateManager.update();
+        drawSurface.getKeyboard().update();
+        stateManager.update();
     }
 
     private void draw() {
-        //stateManager.draw(g);
+        drawSurface.draw(stateManager);
     }
 }
 
