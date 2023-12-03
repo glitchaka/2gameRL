@@ -25,18 +25,21 @@ public class MainManager {
         MainManager mainManager = new MainManager("2gameRL", 640, 480);
         mainManager.startGame();
         mainManager.StartMainLoop();
+        System.out.println("estoy en el main");
 
     }
 
     private void startGame() {
         onWork = true;
         initializer();
+        System.out.println("estoy en startGame()");
     }
 
     private void initializer() {
         drawSurface = new DrawSurface(width, height);
         windows = new Windows(title, drawSurface);
         stateManager = new StateManager();
+        System.out.println("estoy en el initializer()");
 
     }
 

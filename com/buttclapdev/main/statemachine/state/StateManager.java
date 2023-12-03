@@ -1,6 +1,6 @@
 package com.buttclapdev.main.statemachine.state;
 
-import com.buttclapdev.main.statemachine.game.GameManager;
+import com.buttclapdev.main.statemachine.state.game.GameManager;
 
 import java.awt.*;
 
@@ -11,11 +11,13 @@ public class StateManager {
     public StateManager() {
         startStates();
         startCurrentState();
+        System.out.println("estoy en el construcctor del StateManager");
     }
 
     private void startStates() {
         states = new GameState[1];
         states[0] = new GameManager();
+        System.out.println("estoy en el metodo startStates");
 
         //agregar e iniciar los demas estados a medida que los creemos
     }
