@@ -1,2 +1,7 @@
 # Project exclude paths
 /out/
+/build/
+*.class
+*.jar
+.idea/workspace.xml
+.idea/shelf/
