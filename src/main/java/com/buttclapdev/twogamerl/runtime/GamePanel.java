@@ -28,14 +28,14 @@ public final class GamePanel extends JPanel {
     }
 
     private void installKeys() {
-        bind("pressed W", "up", () -> move(0, -1));
-        bind("pressed UP", "up2", () -> move(0, -1));
-        bind("pressed S", "down", () -> move(0, 1));
-        bind("pressed DOWN", "down2", () -> move(0, 1));
-        bind("pressed A", "left", () -> move(-1, 0));
-        bind("pressed LEFT", "left2", () -> move(-1, 0));
-        bind("pressed D", "right", () -> move(1, 0));
-        bind("pressed RIGHT", "right2", () -> move(1, 0));
+        bind("pressed W", "up", () -> movePlayer(0, -1));
+        bind("pressed UP", "up2", () -> movePlayer(0, -1));
+        bind("pressed S", "down", () -> movePlayer(0, 1));
+        bind("pressed DOWN", "down2", () -> movePlayer(0, 1));
+        bind("pressed A", "left", () -> movePlayer(-1, 0));
+        bind("pressed LEFT", "left2", () -> movePlayer(-1, 0));
+        bind("pressed D", "right", () -> movePlayer(1, 0));
+        bind("pressed RIGHT", "right2", () -> movePlayer(1, 0));
         bind("pressed ESCAPE", "escape", () -> { if (inGame) { inGame = false; activeMenu = project.getStartMenu(); repaint(); } });
     }
 
@@ -54,7 +54,7 @@ public final class GamePanel extends JPanel {
         repaint();
     }
 
-    private void move(int dx, int dy) {
+    private void movePlayer(int dx, int dy) {
         if (!inGame || level == null) return;
         int nx = playerX + dx, ny = playerY + dy;
         if (nx < 0 || ny < 0 || nx >= level.width || ny >= level.height) return;
