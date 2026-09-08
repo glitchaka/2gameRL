@@ -50,8 +50,12 @@ jobs:
           if ($log -notmatch '\[Jugador\] Jugador iniciado') { throw "El script start del jugador no se ejecuto en Windows." }
 
       - name: Package Windows Studio
-        shell: cmd
-        run: scripts\package-editor.bat
+        shell: pwsh
+        run: |
+          [xml]$pom = Get-Content pom.xml
+          $version = $pom.project.version
+          cmd /c "scripts\package-editor.bat $version"
+          if ($LASTEXITCODE -ne 0) { throw "El empaquetado Windows fallo con codigo $LASTEXITCODE." }
 
       - name: Verify packaged Windows toolchain
         shell: pwsh
