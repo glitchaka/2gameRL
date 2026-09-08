@@ -77,6 +77,7 @@
 .canvas-shell { -fx-background-color: #0a0f16; }
 .component-card { -fx-background-color: #172331; -fx-border-color: #2d4258; -fx-border-radius: 8; -fx-background-radius: 8; -fx-padding: 9; }
 .component-title { -fx-text-fill: #e7f3ff; -fx-font-weight: bold; }
+.component-description { -fx-text-fill: #8da2b8; -fx-font-size: 11px; -fx-padding: 0 0 4 0; }
 .tab-pane .tab-header-area .tab-header-background { -fx-background-color: #101823; }
 .tab-pane .tab { -fx-background-color: #15202e; -fx-border-color: transparent transparent #2c4055 transparent; }
 .tab-pane .tab:selected { -fx-background-color: #18344b; -fx-border-color: transparent transparent #48b8ff transparent; }
@@ -90,3 +91,19 @@
 .slider .track { -fx-background-color: #26394d; }
 .slider .thumb { -fx-background-color: #48b8ff; }
 .pixel-editor { -fx-background-color: #0c1119; }
+
+.tutorial-window { -fx-background-color: #0c1119; }
+.tutorial-navigation { -fx-background-color: #101925; }
+.tutorial-heading { -fx-text-fill: #ffffff; -fx-font-size: 22px; -fx-font-weight: bold; }
+.tutorial-explanation { -fx-text-fill: #c9d7e6; -fx-font-size: 13px; -fx-line-spacing: 2px; }
+.tutorial-code {
+    -fx-font-family: "Consolas", "JetBrains Mono", monospace;
+    -fx-font-size: 13px;
+    -fx-background-color: #0a1018;
+    -fx-border-color: #2c4055;
+    -fx-border-radius: 7;
+    -fx-background-radius: 7;
+}
+.tutorial-code .content { -fx-background-color: #0a1018; }
+.tutorial-note { -fx-text-fill: #8fcfff; -fx-background-color: #122536; -fx-padding: 9 11; -fx-background-radius: 7; }
+.tutorial-content-scroll, .tutorial-content-scroll > .viewport { -fx-background-color: #0c1119; }
