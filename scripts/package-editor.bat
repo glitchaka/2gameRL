@@ -1,14 +1,18 @@
 @echo off
 setlocal
-set ROOT=%~dp0..
-call "%~dp0build-editor.bat" || exit /b 1
-set PKG=%ROOT%\build\editor-package
-if exist "%PKG%" rmdir /s /q "%PKG%"
-if exist "%ROOT%\build\jpackage-input" rmdir /s /q "%ROOT%\build\jpackage-input"
-mkdir "%ROOT%\build\jpackage-input" 2>nul
-copy /y "%ROOT%\build\2gameRL-Studio.jar" "%ROOT%\build\jpackage-input\2gameRL-Studio.jar" >nul
-jpackage --type app-image --name "2gameRL Studio" --input "%ROOT%\build\jpackage-input" --main-jar "2gameRL-Studio.jar" --main-class com.buttclapdev.twogamerl.App --dest "%PKG%" || exit /b 1
-mkdir "%PKG%\2gameRL Studio\authoring" 2>nul
-xcopy /e /i /y "%ROOT%\src" "%PKG%\2gameRL Studio\authoring\src" >nul
-xcopy /e /i /y "%ROOT%\scripts" "%PKG%\2gameRL Studio\authoring\scripts" >nul
-echo Editor ejecutable: %PKG%\2gameRL Studio\2gameRL Studio.exe
+cd /d "%~dp0.."
+call "%~dp0build-editor.bat"
+if errorlevel 1 exit /b %errorlevel%
+if "%JAVA_HOME%"=="" (echo ERROR: JAVA_HOME debe apuntar a un JDK 21 completo para crear el editor autocontenido.& exit /b 1)
+if not exist "%JAVA_HOME%\bin\jpackage.exe" (echo ERROR: %JAVA_HOME% no contiene jpackage.exe.& exit /b 1)
+for /f "usebackq delims=" %%v in (`mvn -q -DforceStdout help:evaluate -Dexpression=project.version`) do set "APP_VERSION=%%v"
+if "%APP_VERSION%"=="" (echo ERROR: No se pudo obtener la version desde pom.xml.& exit /b 1)
+if exist "build\2gameRL Studio" rmdir /s /q "build\2gameRL Studio"
+if not exist build mkdir build
+echo [2gameRL] Creando 2gameRL Studio %APP_VERSION% autocontenido...
+"%JAVA_HOME%\bin\jpackage.exe" --type app-image --input "target\app-input" --dest "build" --name "2gameRL Studio" --main-jar "2gameRL-Studio.jar" --main-class "com.buttclapdev.twogamerl.studio.DesktopLauncher" --runtime-image "%JAVA_HOME%" --app-version "%APP_VERSION%" --description "Editor visual 2gameRL"
+if errorlevel 1 exit /b %errorlevel%
+echo.
+echo LISTO: build\2gameRL Studio\2gameRL Studio.exe
+echo El JDK completo queda integrado para que Exportar funcione desde el propio editor.
+endlocal

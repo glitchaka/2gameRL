@@ -1,11 +1,10 @@
 @echo off
 setlocal
-set ROOT=%~dp0..
-set BUILD=%ROOT%\build
-if exist "%BUILD%\classes" rmdir /s /q "%BUILD%\classes"
-mkdir "%BUILD%\classes" 2>nul
-if exist "%BUILD%\sources.txt" del /q "%BUILD%\sources.txt"
-for /r "%ROOT%\src\main\java" %%f in (*.java) do echo "%%f">>"%BUILD%\sources.txt"
-javac --release 21 -encoding UTF-8 -d "%BUILD%\classes" @"%BUILD%\sources.txt" || exit /b 1
-jar --create --file "%BUILD%\2gameRL-Studio.jar" --main-class com.buttclapdev.twogamerl.App -C "%BUILD%\classes" . || exit /b 1
-echo Creado: %BUILD%\2gameRL-Studio.jar
+cd /d "%~dp0.."
+where java >nul 2>nul || (echo ERROR: Java no esta instalado o no esta en PATH.& exit /b 1)
+where mvn >nul 2>nul || (echo ERROR: Maven no esta instalado o no esta en PATH.& echo Instala Maven 3.9+ y vuelve a ejecutar.& exit /b 1)
+echo [2gameRL] Compilando Studio...
+call mvn -DskipTests package
+if errorlevel 1 exit /b %errorlevel%
+echo [2gameRL] OK: target\app-input\2gameRL-Studio.jar
+endlocal

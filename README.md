@@ -21,24 +21,6 @@ Editor visual de juegos 2D/roguelike construido con **JavaFX 21**. La interfaz S
 - Exportación nativa desde el editor mediante `jpackage`, sin depender de la antigua carpeta `scripts` en tiempo de ejecución.
 - Exportación adicional a ZIP portable.
 
-## 2GameScript
-
-```text
-on start
-  log "Jugador iniciado"
-end
-
-on update
-  ifPressed SPACE velocity 0 -6
-end
-
-on collision
-  bounce
-end
-```
-
-Comandos: `log`, `move`, `velocity`, `teleport`, `bounce`, `destroy`, `loadScene`, `setSprite`, `setVar`, `addVar`, `set`, `ifKey`, `ifPressed`.
-
 ## Arrancar en Windows
 
 Requisitos de desarrollo: **JDK 21** y **Maven 3.9+**.
@@ -47,7 +29,9 @@ Requisitos de desarrollo: **JDK 21** y **Maven 3.9+**.
 scripts\run-studio.bat
 ```
 
-## Crear Studio como aplicación autocontenida
+Para uso normal descarga el ZIP de Windows desde **Releases**: el Studio viene autocontenido y no requiere instalar Maven.
+
+## Crear 2gameRL Studio como aplicación autocontenida
 
 Configura `JAVA_HOME` apuntando al JDK 21 completo y ejecuta:
 
@@ -55,17 +39,15 @@ Configura `JAVA_HOME` apuntando al JDK 21 completo y ejecuta:
 scripts\package-editor.bat
 ```
 
-Resultado:
+Resultado: `build\2gameRL Studio\2gameRL Studio.exe`.
 
-```text
-build\2gameRL Studio\2gameRL Studio.exe
-```
-
-El editor empaquetado incorpora el JDK completo para conservar `jpackage`; por eso **Exportar juego** funciona también desde Studio instalado/empaquetado.
+El empaquetado del editor incluye el JDK completo para conservar `jpackage`; de esta forma **Exportar juego** también funciona desde el Studio empaquetado.
 
 ## Exportar un juego
 
-Desde Studio: botón **Exportar**. La salida contiene una aplicación autocontenida, un ZIP portable y un LEEME. También puede ejecutarse:
+Desde Studio: botón **Exportar**. La salida contiene la aplicación autocontenida, un ZIP portable y un LEEME.
+
+También puede ejecutarse por consola:
 
 ```bat
 scripts\export-game.bat proyecto.2grl carpeta-salida
@@ -78,6 +60,14 @@ scripts\export-game.bat proyecto.2grl carpeta-salida
 - **Doble clic**: abrir Script de ese objeto.
 - **Tile**: activa pintura de tiles.
 - **Borrar**: vuelve la celda a suelo.
-- **Objeto**: crea una entidad nueva y vuelve a Seleccionar.
+- **Objeto**: crea una entidad nueva y regresa automáticamente a Seleccionar.
 - **Inspector → Añadir comportamiento**: incorpora componentes configurables.
 - **Gráficos → Pixel Lab**: crea sprites placeholder sin salir de Studio.
+
+## Recursos de muestra heredados
+
+La versión 2.0.2 reincorpora la hoja `test.png` de la rama histórica `agregamos-los-sprites`. El Studio la carga como **Sample Texture Sheet 32px** y expone automáticamente sus 100 celdas de 32×32 como sprites individuales (`sample-00-00.png` … `sample-09-09.png`) dentro de la biblioteca gráfica de todo proyecto nuevo.
+
+## Versionado y Releases
+
+Cada cambio que llega a `master` pasa por GitHub Actions. Si compilación, tests, arranque del Studio, arranque del runtime y exportación terminan correctamente, el workflow crea un Release inmutable con tag `v<versión>-<sha>` y adjunta el paquete Windows correspondiente. Un cambio no sustituye silenciosamente al Release anterior.
