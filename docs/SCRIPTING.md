@@ -40,7 +40,9 @@ end
 
 `collision` y `trigger` exponen la entidad contraria mediante la referencia especial `other`.
 
-## Movimiento propio
+## Movimiento
+
+Movimiento directo desde script:
 
 ```text
 move 1 0
@@ -49,7 +51,29 @@ teleport 8 4
 bounce
 ```
 
-Las coordenadas usan unidades de tile.
+Las coordenadas usan unidades de loseta.
+
+### Movimiento configurable por losetas
+
+Añade **GridMovement** desde el Inspector para que el objeto se mueva por pasos discretos. Sus propiedades se pueden editar visualmente o desde script:
+
+```text
+setComponent self GridMovement step 1
+setComponent self GridMovement repeatDelay 0.16
+setComponent self GridMovement moveDuration 0
+setComponent self GridMovement allowDiagonal false
+setComponent self GridMovement allowArrows true
+setComponent self GridMovement snap true
+```
+
+- `step`: distancia de cada movimiento, en losetas. Puede ser `0.5`, `1`, `2`, etc.
+- `repeatDelay`: tiempo entre pasos al mantener una tecla.
+- `moveDuration`: transición visual entre una loseta y otra. `0` = instantáneo.
+- `allowDiagonal`: permite movimientos diagonales.
+- `allowArrows`: habilita flechas además de WASD.
+- `snap`: mantiene la posición lógica alineada al tamaño de paso.
+
+`GridMovement` respeta `BoxCollider2D`, tiles sólidos y capas físicas. `PlayerController` sigue disponible para movimiento libre continuo.
 
 ## Teclado
 
@@ -94,12 +118,12 @@ log "Otra entidad: ${other}"
 
 ## Variables globales
 
-Persisten mientras el juego sigue abierto, incluso al cambiar de escena:
-
 ```text
 setGlobal monedas 0
 addGlobal monedas 1
 ```
+
+Persisten mientras el juego siga abierto, incluso al cambiar de escena.
 
 ## Condiciones y else
 
@@ -149,8 +173,6 @@ repeat 5
 end
 ```
 
-`repeat` acepta entre 0 y 10000 repeticiones.
-
 ## Temporizadores
 
 Pausar solo la secuencia actual:
@@ -175,8 +197,6 @@ Repetir una acción:
 every 1 5 create chispa
 ```
 
-`every <segundos> <cantidad> <comando>` programa el comando la cantidad indicada de veces.
-
 ## Crear entidades
 
 ```text
@@ -191,19 +211,17 @@ Se puede usar el ID o el nombre exacto de una entidad plantilla de la escena. Ca
 
 Muchos comandos aceptan:
 
-- `self`: la entidad que ejecuta el script.
-- `other`: la otra entidad de un evento `collision`, `trigger` o `destroy` causado por otra entidad.
+- `self`: entidad que ejecuta el script.
+- `other`: entidad contraria en `collision`, `trigger` o `destroy`.
 - ID exacto.
 - nombre de entidad.
-
-Ejemplos:
 
 ```text
 destroyEntity other
 moveEntity enemigo 1 0
 teleportEntity enemigo 8 4
 setEntity enemigo enabled false
-setEntitySprite enemigo slime.png
+setEntitySprite enemigo hero_idle_01
 setEntityVar enemigo estado dormido
 addEntityVar enemigo furia 1
 ```
@@ -217,17 +235,19 @@ setComponent self Rigidbody2D gravityScale 0
 enableComponent self BoxCollider2D false
 ```
 
-También funciona sobre otra entidad:
+También funciona sobre otras entidades:
 
 ```text
 setComponent other Health current 25
+setComponent enemigo GridMovement step 2
 ```
 
 Tipos integrados:
 
+- `GridMovement`
+- `PlayerController`
 - `Rigidbody2D`
 - `BoxCollider2D`
-- `PlayerController`
 - `Patrol`
 - `ScenePortal`
 - `Trigger`
@@ -242,8 +262,6 @@ damage other 10
 heal self 20
 ```
 
-Requiere `Health` en la entidad objetivo. Al llegar a 0 se ejecuta `on destroy` y se elimina la entidad.
-
 ## Escenas y menús
 
 ```text
@@ -252,18 +270,16 @@ restartScene
 showMenu pausa
 ```
 
-Al cambiar de escena se cancelan los temporizadores de la escena anterior.
-
-## Sprites
+## Sprites y spritesheets
 
 ```text
-setSprite hero.png
-setEntitySprite enemigo slime.png
+setSprite hero_idle_01
+setEntitySprite enemigo slime_ataque_03
 ```
 
-## Propiedades
+El nombre puede apuntar tanto a una imagen independiente como a una **región virtual de una spritesheet**. La hoja se almacena una sola vez; los sprites definidos dentro de ella son referencias `x/y/ancho/alto` y se renderizan con nearest-neighbor, sin blur.
 
-Propiedades directas de entidad:
+## Propiedades
 
 ```text
 set x 10
@@ -272,9 +288,10 @@ set width 1
 set height 1
 set enabled true
 set layer 3
+set group Enemigos
 set renderLayer Personajes
 set physicsLayer Player
-set sprite hero.png
+set sprite hero_idle_01
 set vx 2
 set vy 0
 ```
@@ -288,8 +305,6 @@ setEntity enemigo physicsLayer Enemy
 
 ## stop / return
 
-Detiene el bloque actual:
-
 ```text
 ifVar muerto == true
   stop
@@ -300,9 +315,7 @@ end
 
 ## BoxCollider2D
 
-Dos entidades activas con `BoxCollider2D`, `solid=true` y capas físicas compatibles se bloquean entre sí. `Rigidbody2D` no es requisito.
-
-Las capas físicas únicamente filtran contactos. Los tiles no transitables de una capa con colisión también bloquean.
+Dos entidades activas con `BoxCollider2D`, `solid=true` y capas físicas compatibles se bloquean entre sí. `Rigidbody2D` no es requisito. Los tiles no transitables de una capa con colisión también bloquean.
 
 ## Referencia rápida
 
@@ -323,8 +336,8 @@ create|spawn <entidad> [x y]
 loadScene <escena>
 restartScene
 showMenu <menú>
-setSprite <asset>
-setEntitySprite <entidad> <asset>
+setSprite <asset-o-region>
+setEntitySprite <entidad> <asset-o-region>
 setVar <nombre> <valor>
 addVar <nombre> <número>
 mulVar <nombre> <número>
