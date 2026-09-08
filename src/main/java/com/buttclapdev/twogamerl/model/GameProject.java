@@ -40,7 +40,10 @@ public final class GameProject {
         EntityDef player = new EntityDef("player", "Jugador", 2, 2);
         player.assetKey = "placeholder-player.png";
         player.components.add(ComponentDef.preset("PlayerController"));
-        player.components.add(ComponentDef.preset("Rigidbody2D"));
+        ComponentDef playerRigid = ComponentDef.preset("Rigidbody2D");
+        playerRigid.properties.put("gravityScale", "0");
+        playerRigid.properties.put("drag", "8");
+        player.components.add(playerRigid);
         player.components.add(ComponentDef.preset("BoxCollider2D"));
         player.script = "# Los scripts se ejecutan realmente en el juego.\n" +
                 "on start\n" +
@@ -233,8 +236,9 @@ public final class GameProject {
         public boolean bool(String key, boolean def) { return Boolean.parseBoolean(get(key, Boolean.toString(def))); }
         public static ComponentDef preset(String type) {
             LinkedHashMap<String,String> p = new LinkedHashMap<>();
+            p.put("enabled", "true");
             switch (type) {
-                case "Rigidbody2D" -> { p.put("mass", "1"); p.put("gravityScale", "0"); p.put("drag", "8"); p.put("maxSpeed", "8"); }
+                case "Rigidbody2D" -> { p.put("mass", "1"); p.put("gravityScale", "1"); p.put("drag", "0.4"); p.put("maxSpeed", "12"); }
                 case "BoxCollider2D" -> { p.put("width", "0.82"); p.put("height", "0.82"); p.put("solid", "true"); }
                 case "PlayerController" -> { p.put("speed", "4"); p.put("allowArrows", "true"); }
                 case "Patrol" -> { p.put("axis", "x"); p.put("distance", "4"); p.put("speed", "1.5"); }
@@ -242,7 +246,7 @@ public final class GameProject {
                 case "Trigger" -> { p.put("tag", "trigger"); p.put("once", "false"); }
                 case "Health" -> { p.put("max", "100"); p.put("current", "100"); }
                 case "DamageOnContact" -> p.put("damage", "10");
-                case "Clickable" -> p.put("enabled", "true");
+                case "Clickable" -> { }
                 default -> {}
             }
             return new ComponentDef(type, p);
@@ -253,6 +257,22 @@ public final class GameProject {
     public static final List<String> BUILTIN_COMPONENTS = List.of(
             "Rigidbody2D", "BoxCollider2D", "PlayerController", "Patrol", "ScenePortal", "Trigger", "Health", "DamageOnContact", "Clickable"
     );
+
+    private static final Map<String, String> COMPONENT_DESCRIPTIONS = Map.ofEntries(
+            Map.entry("Rigidbody2D", "Física: gravedad, velocidad máxima y drag. Por defecto gravityScale=1, así que una entidad nueva cae al añadirlo."),
+            Map.entry("BoxCollider2D", "Colisión rectangular real contra tiles no transitables y contra otros BoxCollider2D sólidos."),
+            Map.entry("PlayerController", "Control inmediato con WASD y, opcionalmente, flechas. La propiedad speed define la velocidad."),
+            Map.entry("Patrol", "Movimiento automático de ida y vuelta desde la posición inicial, respetando axis, distance y speed."),
+            Map.entry("ScenePortal", "Al tocar un PlayerController carga targetScene y lo coloca en targetX/targetY."),
+            Map.entry("Trigger", "Dispara el evento de script 'trigger' al entrar un PlayerController. once=true lo consume tras la primera activación."),
+            Map.entry("Health", "Vida de la entidad. DamageOnContact reduce current y destruye la entidad al llegar a 0."),
+            Map.entry("DamageOnContact", "Aplica damage una vez al comenzar el contacto con una entidad que tenga Health."),
+            Map.entry("Clickable", "Controla si la entidad recibe eventos click/doubleClick. enabled=false bloquea ambos eventos.")
+    );
+
+    public static String componentDescription(String type) {
+        return COMPONENT_DESCRIPTIONS.getOrDefault(type, "Comportamiento integrado del motor.");
+    }
 
     public enum MenuAction { START_GAME, OPEN_MENU, EXIT }
     public static final class MenuButton {
