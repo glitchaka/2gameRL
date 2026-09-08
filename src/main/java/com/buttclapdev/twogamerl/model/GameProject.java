@@ -5,6 +5,7 @@ import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.util.*;
 
 public final class GameProject {
@@ -26,6 +27,7 @@ public final class GameProject {
         p.tiles.put(0, new TileDef(0, "Suelo", new Color(42, 48, 58), true, ""));
         p.tiles.put(1, new TileDef(1, "Muro", new Color(80, 88, 104), false, ""));
         p.assets.put("placeholder-player.png", new Asset("placeholder-player.png", "placeholder-player.png", placeholderPlayerPng()));
+        loadBundledSampleSprites(p);
 
         Level level = new Level("level-1", "Nivel 1", 24, 16);
         for (int y = 0; y < level.height; y++) {
@@ -55,6 +57,31 @@ public final class GameProject {
         menu.buttons.add(new MenuButton("Salir", 220, 250, 200, 48, MenuAction.EXIT, ""));
         p.menus.put(menu.id, menu);
         return p;
+    }
+
+    private static void loadBundledSampleSprites(GameProject project) {
+        try (InputStream input = GameProject.class.getResourceAsStream("/samples/TexturesSheet/test.png")) {
+            if (input == null) return;
+            byte[] sheetBytes = input.readAllBytes();
+            BufferedImage sheet = ImageIO.read(new ByteArrayInputStream(sheetBytes));
+            if (sheet == null) return;
+            project.assets.put("sample-sheet-32.png", new Asset("sample-sheet-32.png", "Sample Texture Sheet 32px", sheetBytes));
+            final int cell = 32;
+            int columns = sheet.getWidth() / cell;
+            int rows = sheet.getHeight() / cell;
+            for (int y = 0; y < rows; y++) {
+                for (int x = 0; x < columns; x++) {
+                    BufferedImage sprite = sheet.getSubimage(x * cell, y * cell, cell, cell);
+                    ByteArrayOutputStream out = new ByteArrayOutputStream();
+                    ImageIO.write(sprite, "png", out);
+                    String key = String.format(Locale.ROOT, "sample-%02d-%02d.png", x, y);
+                    String label = String.format(Locale.ROOT, "Sample Sprite %d,%d", x, y);
+                    project.assets.put(key, new Asset(key, label, out.toByteArray()));
+                }
+            }
+        } catch (Exception ignored) {
+            // Los recursos de ejemplo nunca deben impedir crear o abrir un proyecto.
+        }
     }
 
     private static byte[] placeholderPlayerPng() {
