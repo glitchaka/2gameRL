@@ -58,12 +58,29 @@ public final class ProjectIO {
                 p.setProperty("id", menu.id);
                 p.setProperty("title", safe(menu.title));
                 p.setProperty("background", Integer.toString(menu.background.getRGB()));
+                p.setProperty("backgroundAsset", safe(menu.backgroundAssetKey));
+                p.setProperty("canvasWidth", Integer.toString(menu.canvasWidth));
+                p.setProperty("canvasHeight", Integer.toString(menu.canvasHeight));
+                p.setProperty("titleX", Integer.toString(menu.titleX));
+                p.setProperty("titleY", Integer.toString(menu.titleY));
+                p.setProperty("titleWidth", Integer.toString(menu.titleWidth));
+                p.setProperty("titleHeight", Integer.toString(menu.titleHeight));
+                p.setProperty("titleFontSize", Integer.toString(menu.titleFontSize));
+                p.setProperty("titleColor", Integer.toString(menu.titleColor.getRGB()));
+                p.setProperty("titleAsset", safe(menu.titleAssetKey));
+                p.setProperty("titleAnimation", menu.titleAnimation.name());
+                p.setProperty("titleAnimationSpeed", Double.toString(menu.titleAnimationSpeed));
                 p.setProperty("buttonCount", Integer.toString(menu.buttons.size()));
                 for (int i = 0; i < menu.buttons.size(); i++) {
                     MenuButton b = menu.buttons.get(i); String k = "button." + i + ".";
                     p.setProperty(k + "text", safe(b.text)); p.setProperty(k + "x", Integer.toString(b.x)); p.setProperty(k + "y", Integer.toString(b.y));
                     p.setProperty(k + "width", Integer.toString(b.width)); p.setProperty(k + "height", Integer.toString(b.height));
                     p.setProperty(k + "action", b.action.name()); p.setProperty(k + "target", safe(b.target));
+                    p.setProperty(k + "asset", safe(b.assetKey)); p.setProperty(k + "hoverAsset", safe(b.hoverAssetKey));
+                    p.setProperty(k + "fontSize", Integer.toString(b.fontSize)); p.setProperty(k + "textColor", Integer.toString(b.textColor.getRGB()));
+                    p.setProperty(k + "backgroundColor", Integer.toString(b.backgroundColor.getRGB()));
+                    p.setProperty(k + "animation", b.animation.name()); p.setProperty(k + "hoverEffect", b.hoverEffect.name());
+                    p.setProperty(k + "animationSpeed", Double.toString(b.animationSpeed));
                 }
                 putProperties(zip, "menus/" + menu.id + ".properties", p);
             }
@@ -158,6 +175,7 @@ public final class ProjectIO {
             String ck = k + "component." + c + "."; ComponentDef component = new ComponentDef(p.getProperty(ck + "type", "Component"));
             int pc = integer(p, ck + "propertyCount", 0);
             for (int pi = 0; pi < pc; pi++) component.properties.put(p.getProperty(ck + "property." + pi + ".name", "property" + pi), p.getProperty(ck + "property." + pi + ".value", ""));
+            if (!component.properties.containsKey("enabled")) component.properties.put("enabled", "true");
             e.components.add(component);
         }
         int vc = integer(p, k + "variableCount", 0);
@@ -168,12 +186,26 @@ public final class ProjectIO {
 
     private static void readMenu(GameProject p, byte[] data, String path) throws IOException {
         Properties mp = props(data); String id = mp.getProperty("id", fileStem(path)); MenuScreen menu = new MenuScreen(id, mp.getProperty("title", id));
-        menu.background = new Color(integer(mp, "background", new Color(19,24,34).getRGB()), true); int count = integer(mp, "buttonCount", 0);
+        menu.background = new Color(integer(mp, "background", new Color(19,24,34).getRGB()), true);
+        menu.backgroundAssetKey = mp.getProperty("backgroundAsset", "");
+        menu.canvasWidth = integer(mp, "canvasWidth", 640); menu.canvasHeight = integer(mp, "canvasHeight", 480);
+        menu.titleX = integer(mp, "titleX", 30); menu.titleY = integer(mp, "titleY", 30);
+        menu.titleWidth = integer(mp, "titleWidth", 360); menu.titleHeight = integer(mp, "titleHeight", 80);
+        menu.titleFontSize = integer(mp, "titleFontSize", 34); menu.titleColor = new Color(integer(mp, "titleColor", Color.WHITE.getRGB()), true);
+        menu.titleAssetKey = mp.getProperty("titleAsset", ""); menu.titleAnimation = enumValue(MenuAnimation.class, mp.getProperty("titleAnimation"), MenuAnimation.NONE);
+        menu.titleAnimationSpeed = decimal(mp, "titleAnimationSpeed", 1.0);
+        int count = integer(mp, "buttonCount", 0);
         for (int i = 0; i < count; i++) {
-            String k = "button." + i + "."; MenuAction action;
-            try { action = MenuAction.valueOf(mp.getProperty(k + "action", "START_GAME")); } catch (IllegalArgumentException ex) { action = MenuAction.START_GAME; }
-            menu.buttons.add(new MenuButton(mp.getProperty(k + "text", "Botón"), integer(mp, k + "x", 100), integer(mp, k + "y", 100),
-                    integer(mp, k + "width", 180), integer(mp, k + "height", 44), action, mp.getProperty(k + "target", "")));
+            String k = "button." + i + ".";
+            MenuAction action = enumValue(MenuAction.class, mp.getProperty(k + "action"), MenuAction.START_GAME);
+            MenuButton b = new MenuButton(mp.getProperty(k + "text", "Botón"), integer(mp, k + "x", 100), integer(mp, k + "y", 100), integer(mp, k + "width", 180), integer(mp, k + "height", 44), action, mp.getProperty(k + "target", ""));
+            b.assetKey = mp.getProperty(k + "asset", ""); b.hoverAssetKey = mp.getProperty(k + "hoverAsset", "");
+            b.fontSize = integer(mp, k + "fontSize", 16); b.textColor = new Color(integer(mp, k + "textColor", Color.WHITE.getRGB()), true);
+            b.backgroundColor = new Color(integer(mp, k + "backgroundColor", new Color(31,115,170).getRGB()), true);
+            b.animation = enumValue(MenuAnimation.class, mp.getProperty(k + "animation"), MenuAnimation.NONE);
+            b.hoverEffect = enumValue(MenuHoverEffect.class, mp.getProperty(k + "hoverEffect"), MenuHoverEffect.SCALE);
+            b.animationSpeed = decimal(mp, k + "animationSpeed", 1.0);
+            menu.buttons.add(b);
         }
         p.getMenus().put(id, menu);
     }
@@ -188,13 +220,12 @@ public final class ProjectIO {
         }
     }
 
-    private static void putProperties(ZipOutputStream zip, String path, Properties p) throws IOException {
-        ByteArrayOutputStream out = new ByteArrayOutputStream(); p.store(new OutputStreamWriter(out, StandardCharsets.UTF_8), "2gameRL"); putBytes(zip, path, out.toByteArray());
-    }
+    private static void putProperties(ZipOutputStream zip, String path, Properties p) throws IOException { ByteArrayOutputStream out = new ByteArrayOutputStream(); p.store(new OutputStreamWriter(out, StandardCharsets.UTF_8), "2gameRL"); putBytes(zip, path, out.toByteArray()); }
     private static void putBytes(ZipOutputStream zip, String path, byte[] data) throws IOException { ZipEntry entry = new ZipEntry(path); zip.putNextEntry(entry); zip.write(data); zip.closeEntry(); }
     private static Properties props(byte[] data) throws IOException { Properties p = new Properties(); if (data != null) p.load(new InputStreamReader(new ByteArrayInputStream(data), StandardCharsets.UTF_8)); return p; }
     private static int integer(Properties p, String key, int def) { try { return Integer.parseInt(p.getProperty(key, Integer.toString(def))); } catch (NumberFormatException e) { return def; } }
     private static double decimal(Properties p, String key, double def) { try { return Double.parseDouble(p.getProperty(key, Double.toString(def))); } catch (NumberFormatException e) { return def; } }
     private static String safe(String s) { return s == null ? "" : s; }
     private static String fileStem(String path) { String n = path.substring(path.lastIndexOf('/') + 1); int dot = n.lastIndexOf('.'); return dot > 0 ? n.substring(0, dot) : n; }
+    private static <E extends Enum<E>> E enumValue(Class<E> type, String raw, E def) { if (raw == null) return def; try { return Enum.valueOf(type, raw); } catch (IllegalArgumentException ex) { return def; } }
 }
