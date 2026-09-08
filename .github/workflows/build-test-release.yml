@@ -77,7 +77,7 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path build\export-smoke | Out-Null
-          & "build\2gameRL Studio\toolchain\bin\java.exe" -Dtwogamerl.toolchain="build\2gameRL Studio\toolchain" -cp "build\2gameRL Studio\app\*" com.buttclapdev.twogamerl.export.ExportCli target\smoke\default.2grl build\export-smoke
+          & "build\2gameRL Studio\toolchain\bin\java.exe" -cp "build\2gameRL Studio\app\*" com.buttclapdev.twogamerl.export.ExportCli target\smoke\default.2grl build\export-smoke
           if ($LASTEXITCODE -ne 0) { throw "La exportacion desde el Studio empaquetado fallo." }
           if (-not (Test-Path "build\export-smoke\2gameRL-Smoke\2gameRL-Smoke.exe")) { throw "No se genero el ejecutable del juego." }
           if (-not (Test-Path "build\export-smoke\2gameRL-Smoke-portable.zip")) { throw "No se genero el ZIP portable del juego." }
