@@ -339,7 +339,7 @@ public final class GameView extends StackPane {
         @Override public void bounce(){body.vx=-body.vx;body.vy=-body.vy;}
         @Override public void destroy(){destroyBody(body,other);}
         @Override public void loadScene(String id){if(project.getLevels().containsKey(id))pendingScene=new PendingScene(id,null,null);else logger.accept("[Script] No existe la escena '"+id+"'.");}
-        @Override public void showMenu(String id){if(project.getMenus().containsKey(id)){scheduled.clear();showMenu(id);}else logger.accept("[Script] No existe el menú '"+id+"'.");}
+        @Override public void showMenu(String id){if(project.getMenus().containsKey(id)){scheduled.clear();GameView.this.showMenu(id);}else logger.accept("[Script] No existe el menú '"+id+"'.");}
         @Override public void restartScene(){if(level!=null)pendingScene=new PendingScene(level.id,null,null);}
         @Override public void setSprite(String assetKey){body.def.assetKey=assetKey;}
         @Override public void createEntity(String template,Double x,Double y){GameView.this.createEntity(body,template,x,y);}
