@@ -5,6 +5,7 @@ import com.buttclapdev.twogamerl.model.GameProject.MenuHoverEffect;
 import javafx.animation.*;
 import javafx.scene.Node;
 import javafx.scene.effect.DropShadow;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.StackPane;
 import javafx.scene.paint.Color;
 import javafx.util.Duration;
@@ -42,7 +43,7 @@ public final class MenuEffects {
 
     public static void installHover(Node node, MenuHoverEffect effect) {
         MenuHoverEffect actual = effect == null ? MenuHoverEffect.NONE : effect;
-        node.setOnMouseEntered(e -> {
+        node.addEventHandler(MouseEvent.MOUSE_ENTERED, e -> {
             switch (actual) {
                 case NONE -> { }
                 case SCALE -> { node.setScaleX(1.06); node.setScaleY(1.06); }
@@ -50,7 +51,7 @@ public final class MenuEffects {
                 case LIFT -> node.setTranslateY(-4);
             }
         });
-        node.setOnMouseExited(e -> {
+        node.addEventHandler(MouseEvent.MOUSE_EXITED, e -> {
             node.setScaleX(1); node.setScaleY(1); node.setTranslateY(0); node.setEffect(null);
         });
     }
