@@ -33,12 +33,16 @@ public final class GameView extends StackPane {
     private final Set<KeyCode> keys = EnumSet.noneOf(KeyCode.class);
     private final Set<KeyCode> pressed = EnumSet.noneOf(KeyCode.class);
     private final LinkedHashMap<String, Body> bodies = new LinkedHashMap<>();
+    private final PriorityQueue<ScheduledAction> scheduled = new PriorityQueue<>(Comparator.comparingDouble(ScheduledAction::due).thenComparingLong(ScheduledAction::order));
     private final AnimationTimer timer;
     private Consumer<String> logger = System.out::println;
     private Level level;
     private PendingScene pendingScene;
     private boolean playing;
     private long lastTime;
+    private long scheduledSequence;
+    private long runtimeEntitySequence;
+    private double runtimeSeconds;
     private Set<String> contacts = new HashSet<>();
     private Set<String> frameContacts = new HashSet<>();
 
@@ -161,7 +165,9 @@ public final class GameView extends StackPane {
         Level next = project.getLevels().get(id);
         if (next == null && !project.getLevels().isEmpty()) next = project.getLevels().values().iterator().next();
         if (next == null) return;
-        level = next; bodies.clear(); contacts.clear(); frameContacts.clear();
+        level = next;
+        bodies.clear(); contacts.clear(); frameContacts.clear(); scheduled.clear();
+        runtimeSeconds = 0; scheduledSequence = 0; runtimeEntitySequence = 0;
         for (EntityDef def : level.entities) {
             Body body = new Body(def.copy()); normalizeHealth(body); bodies.put(def.id, body);
         }
@@ -183,6 +189,8 @@ public final class GameView extends StackPane {
 
     private void update(double dt) {
         if (level == null) return;
+        runtimeSeconds += Math.max(0, dt);
+        runScheduledActions();
         frameContacts = new HashSet<>();
         for (Body body : List.copyOf(bodies.values())) {
             if (body.destroyed || !body.def.enabled) continue;
@@ -192,6 +200,21 @@ public final class GameView extends StackPane {
         contacts = frameContacts;
         bodies.values().removeIf(b -> b.destroyed);
         if (pendingScene != null) { PendingScene target = pendingScene; pendingScene = null; loadScene(target.id,target.x,target.y); }
+    }
+
+    private void runScheduledActions() {
+        int guard = 0;
+        while (!scheduled.isEmpty() && scheduled.peek().due <= runtimeSeconds + 1e-9 && guard++ < 10000) {
+            ScheduledAction action = scheduled.poll();
+            try { action.action.run(); }
+            catch (RuntimeException ex) { logger.accept("[Script timer] " + ex.getMessage()); }
+        }
+        if (guard >= 10000) logger.accept("[Script timer] Se alcanzó el límite de acciones programadas en un frame.");
+    }
+
+    private void schedule(double seconds, Runnable action) {
+        if (action == null) return;
+        scheduled.add(new ScheduledAction(runtimeSeconds + Math.max(0, seconds), ++scheduledSequence, action));
     }
 
     private void applyBuiltins(Body body, double dt) {
@@ -320,6 +343,40 @@ public final class GameView extends StackPane {
 
     private void fire(Body body,ScriptProgram.Event event,Body other){if(body.destroyed||!body.def.enabled)return;if(body.program==null||!body.scriptSource.equals(body.def.script)){body.scriptSource=body.def.script;body.program=ScriptProgram.compile(body.def.script);}if(!body.program.validation().valid())return;body.program.fire(event,new ScriptContext(body));}
 
+    private void createEntity(Body source, String templateRef, Double x, Double y) {
+        if (level == null || templateRef == null || templateRef.isBlank()) return;
+        EntityDef template = level.entities.stream().filter(e -> e.id.equals(templateRef)).findFirst().orElseGet(() -> level.entities.stream().filter(e -> e.name.equalsIgnoreCase(templateRef)).findFirst().orElse(null));
+        if (template == null) {
+            logger.accept("[" + source.def.name + "] create: no existe la entidad plantilla '" + templateRef + "'.");
+            return;
+        }
+        String id = uniqueRuntimeId(template.id);
+        EntityDef def = cloneEntity(template, id);
+        def.x = x == null ? source.def.x : x;
+        def.y = y == null ? source.def.y : y;
+        Body body = new Body(def);
+        normalizeHealth(body);
+        bodies.put(def.id, body);
+        logger.accept("[Runtime] create " + template.id + " -> " + def.id + " @ " + number(def.x) + "," + number(def.y));
+        fire(body, ScriptProgram.Event.START, null);
+    }
+
+    private String uniqueRuntimeId(String base) {
+        String clean = base == null || base.isBlank() ? "entity" : base;
+        String id;
+        do { id = clean + "#" + (++runtimeEntitySequence); } while (bodies.containsKey(id));
+        return id;
+    }
+
+    private static EntityDef cloneEntity(EntityDef source, String id) {
+        EntityDef copy = new EntityDef(id, source.name, source.x, source.y);
+        copy.width = source.width; copy.height = source.height; copy.enabled = source.enabled; copy.layer = source.layer;
+        copy.renderLayer = source.renderLayer; copy.physicsLayer = source.physicsLayer; copy.assetKey = source.assetKey; copy.script = source.script;
+        source.components.forEach(c -> copy.components.add(c.copy()));
+        copy.variables.putAll(source.variables);
+        return copy;
+    }
+
     private Body hitEntity(double sx,double sy){if(level==null)return null;Viewport v=viewport();double wx=(sx-v.ox)/v.tile,wy=(sy-v.oy)/v.tile;return bodies.values().stream().filter(b->!b.destroyed&&b.def.enabled&&wx>=b.def.x&&wy>=b.def.y&&wx<=b.def.x+b.def.width&&wy<=b.def.y+b.def.height).max(Comparator.comparingInt(this::renderZ)).orElse(null);}
 
     private void render() {
@@ -342,6 +399,10 @@ public final class GameView extends StackPane {
 
     public double[] debugEntityPosition(String id){Body b=bodies.get(id);return b==null?null:new double[]{b.def.x,b.def.y};}
     public double debugHealth(String id){Body b=bodies.get(id);if(b==null)return Double.NaN;ComponentDef h=activeComponent(b,"Health");return h==null?Double.NaN:h.number("current",Double.NaN);}
+    public long debugEntityCountByName(String name){return bodies.values().stream().filter(b->!b.destroyed&&b.def.enabled&&b.def.name.equalsIgnoreCase(name)).count();}
+    public boolean debugHasEntityAt(String name,double x,double y){return bodies.values().stream().anyMatch(b->!b.destroyed&&b.def.enabled&&b.def.name.equalsIgnoreCase(name)&&Math.abs(b.def.x-x)<.001&&Math.abs(b.def.y-y)<.001);}
+    public void debugFireClick(String id){Body b=bodies.get(id);if(b!=null)fire(b,ScriptProgram.Event.CLICK,null);}
+    public void debugAdvance(double seconds){double remaining=Math.max(0,seconds);while(remaining>1e-9){double step=Math.min(.05,remaining);update(step);remaining-=step;}render();}
 
     private final class ScriptContext implements ScriptProgram.Context {
         private final Body body; ScriptContext(Body body){this.body=body;}
@@ -354,6 +415,8 @@ public final class GameView extends StackPane {
         @Override public void destroy(){body.destroyed=true;}
         @Override public void loadScene(String id){pendingScene=new PendingScene(id,null,null);}
         @Override public void setSprite(String assetKey){body.def.assetKey=assetKey;}
+        @Override public void createEntity(String template,Double x,Double y){GameView.this.createEntity(body,template,x,y);}
+        @Override public void schedule(double seconds,Runnable action){GameView.this.schedule(seconds,action);}
         @Override public void log(String message){logger.accept("["+body.def.name+"] "+message);}
         @Override public void setVariable(String name,String value){body.def.variables.put(name,value);}
         @Override public String variable(String name){return body.def.variables.getOrDefault(name,"0");}
@@ -361,6 +424,7 @@ public final class GameView extends StackPane {
     }
 
     private static final class Body { final EntityDef def; double vx,vy,originX,originY; int patrolDirection=1; boolean destroyed,triggerConsumed; String scriptSource=""; ScriptProgram program; Body(EntityDef def){this.def=def;originX=def.x;originY=def.y;} }
+    private record ScheduledAction(double due,long order,Runnable action) {}
     private record Block(Body other) {}
     private record PendingScene(String id,Double x,Double y) {}
     private record Viewport(double tile,double ox,double oy) {}
