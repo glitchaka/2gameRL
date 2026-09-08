@@ -236,16 +236,18 @@ final class SceneEditorPane extends SplitPane {
         for(TextField f:List.of(name,x,y,w,h)){f.setOnAction(e->apply.run());f.focusedProperty().addListener((o,a,b)->{if(!b)apply.run();});}enabled.setOnAction(e->apply.run());sprite.setOnAction(e->apply.run());
         VBox cards=new VBox(8);for(ComponentDef c:selected.components)cards.getChildren().add(componentCard(c));
         ComboBox<String> addType=new ComboBox<>(FXCollections.observableArrayList(GameProject.BUILTIN_COMPONENTS));addType.setPromptText("Añadir comportamiento…");
-        Button add=new Button("＋ Añadir");add.setOnAction(e->{String type=addType.getValue();if(type!=null&&selected.component(type)==null){selected.components.add(ComponentDef.preset(type));app.changed();rebuildInspector();}});
+        Label behaviorHint = new Label("El comportamiento se aplica al pulsar Probar; no necesitas escribir código para los componentes integrados."); behaviorHint.getStyleClass().add("muted"); behaviorHint.setWrapText(true);
+        Button add=new Button("＋ Añadir");add.setOnAction(e->{String type=addType.getValue();if(type!=null&&selected.component(type)==null){selected.components.add(ComponentDef.preset(type));app.changed();app.status(type+" añadido a "+selected.name+": "+GameProject.componentDescription(type));rebuildInspector();}});
         HBox addBar=new HBox(6,addType,add);HBox.setHgrow(addType,Priority.ALWAYS);
-        inspector.getChildren().addAll(title(selected.name.toUpperCase(Locale.ROOT)),transform,new Separator(),title("COMPORTAMIENTOS"),cards,addBar);
+        inspector.getChildren().addAll(title(selected.name.toUpperCase(Locale.ROOT)),transform,new Separator(),title("COMPORTAMIENTOS"),cards,addBar,behaviorHint);
         script.setText(selected.script);validate(false);loading=false;
     }
 
     private Node componentCard(ComponentDef component) {
         VBox card=new VBox(6);card.getStyleClass().add("component-card");Label label=new Label(component.type);label.getStyleClass().add("component-title");
+        Label description = new Label(GameProject.componentDescription(component.type)); description.getStyleClass().add("component-description"); description.setWrapText(true);
         Region space=new Region();HBox.setHgrow(space,Priority.ALWAYS);Button remove=new Button("×");remove.getStyleClass().add("danger-ghost");
-        remove.setOnAction(e->{selected.components.remove(component);app.changed();rebuildInspector();});card.getChildren().add(new HBox(label,space,remove));
+        remove.setOnAction(e->{selected.components.remove(component);app.changed();rebuildInspector();});card.getChildren().addAll(new HBox(label,space,remove),description);
         for(var prop:component.properties.entrySet()){
             TextField f=field(prop.getValue());Runnable save=()->{prop.setValue(f.getText());app.changed();};f.setOnAction(e->save.run());f.focusedProperty().addListener((o,a,b)->{if(!b)save.run();});
             HBox line=new HBox(8,new Label(prop.getKey()),f);line.setAlignment(Pos.CENTER_LEFT);HBox.setHgrow(f,Priority.ALWAYS);card.getChildren().add(line);
