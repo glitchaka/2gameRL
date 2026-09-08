@@ -24,7 +24,8 @@ final class SceneEditorPane extends SplitPane {
     private final ComboBox<Level> scenePicker = new ComboBox<>();
     private final ListView<EntityDef> hierarchy = new ListView<>();
     private final ComboBox<TileDef> tilePicker = new ComboBox<>();
-    private final Slider zoom = new Slider(16, 96, 32);
+    private final ComboBox<Integer> zoomScale = new ComboBox<>(FXCollections.observableArrayList(1, 2, 3, 4));
+    private final Label gridInfo = new Label();
     private final Canvas canvas = new Canvas();
     private final TabPane tabs = new TabPane();
     private final Tab inspectorTab = new Tab("Inspector");
@@ -42,6 +43,7 @@ final class SceneEditorPane extends SplitPane {
     SceneEditorPane(StudioApp app) {
         this.app = app;
         canvas.getGraphicsContext2D().setImageSmoothing(false);
+        zoomScale.setValue(1);
         getItems().addAll(leftPane(), centerPane(), rightPane());
         setDividerPositions(.17, .76);
         refresh();
@@ -74,20 +76,28 @@ final class SceneEditorPane extends SplitPane {
         ToggleButton erase = toolButton("Borrar", group, false, Tool.ERASE);
         ToggleButton object = toolButton("Objeto", group, false, Tool.ENTITY);
         tilePicker.setPrefWidth(170);
-        zoom.setPrefWidth(130);
-        zoom.setMajorTickUnit(8);
-        zoom.setMinorTickCount(0);
-        zoom.setBlockIncrement(8);
-        zoom.setSnapToTicks(true);
-        zoom.valueProperty().addListener((o,a,b) -> resizeCanvas());
+        zoomScale.setPrefWidth(72);
+        zoomScale.setButtonCell(scaleCell());
+        zoomScale.setCellFactory(v -> scaleCell());
+        zoomScale.valueProperty().addListener((o,a,b) -> resizeCanvas());
+        gridInfo.getStyleClass().add("muted");
         Region spacer = new Region(); HBox.setHgrow(spacer, Priority.ALWAYS);
-        HBox tools = new HBox(7, selectTool, tile, erase, object, new Separator(), new Label("Tile:"), tilePicker, spacer, new Label("Zoom"), zoom);
+        HBox tools = new HBox(7, selectTool, tile, erase, object, new Separator(), new Label("Tile:"), tilePicker, spacer, new Label("Zoom"), zoomScale, gridInfo);
         tools.setAlignment(Pos.CENTER_LEFT); tools.setPadding(new Insets(8)); tools.getStyleClass().add("context-toolbar");
         StackPane shell = new StackPane(canvas); shell.getStyleClass().add("canvas-shell"); shell.setPadding(new Insets(28));
         ScrollPane scroll = new ScrollPane(shell); scroll.setPannable(true); scroll.getStyleClass().add("editor-scroll");
         VBox center = new VBox(tools, scroll); VBox.setVgrow(scroll, Priority.ALWAYS);
         installCanvasHandlers();
         return center;
+    }
+
+    private ListCell<Integer> scaleCell() {
+        return new ListCell<>() {
+            @Override protected void updateItem(Integer item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? "" : item + "×");
+            }
+        };
     }
 
     private Node rightPane() {
@@ -103,8 +113,8 @@ final class SceneEditorPane extends SplitPane {
             tool = next;
             app.status(switch (next) {
                 case SELECT -> "Seleccionar: clic selecciona, arrastra mueve y doble clic abre Script.";
-                case TILE -> "Tile: clic o arrastre pinta únicamente el tile elegido.";
-                case ERASE -> "Borrar: clic o arrastre devuelve la celda al tile 0.";
+                case TILE -> "Tile: cada clic pinta exactamente una celda de la cuadrícula.";
+                case ERASE -> "Borrar: cada clic devuelve la celda al tile 0.";
                 case ENTITY -> "Objeto: un clic coloca un objeto y vuelve automáticamente a Seleccionar.";
             });
         });
@@ -129,8 +139,10 @@ final class SceneEditorPane extends SplitPane {
         }
         int caret = Math.max(0, Math.min(script.getCaretPosition(), script.getLength()));
         String current = script.getText();
-        String prefix = caret == 0 ? "" : (current.substring(0, caret).endsWith("\n\n") ? "" : current.substring(0, caret).endsWith("\n") ? "\n" : "\n\n");
-        String suffix = caret >= current.length() ? "" : (current.substring(caret).startsWith("\n\n") ? "" : current.substring(caret).startsWith("\n") ? "\n" : "\n\n");
+        String before = current.substring(0, caret);
+        String after = current.substring(caret);
+        String prefix = caret == 0 ? "" : (before.endsWith("\n\n") ? "" : before.endsWith("\n") ? "\n" : "\n\n");
+        String suffix = caret >= current.length() ? "" : (after.startsWith("\n\n") ? "" : after.startsWith("\n") ? "\n" : "\n\n");
         String block = prefix + example.strip() + suffix;
         script.insertText(caret, block);
         tabs.getSelectionModel().select(scriptTab);
@@ -142,9 +154,9 @@ final class SceneEditorPane extends SplitPane {
     private void installCanvasHandlers() {
         canvas.setOnMousePressed(e -> {
             Level level = level(); if (level == null) return;
-            double z = zoom.getValue(), wx = e.getX()/z, wy = e.getY()/z;
+            double cell = cellSize(), wx = e.getX()/cell, wy = e.getY()/cell;
             if (e.getButton() == MouseButton.SECONDARY) {
-                if (tool == Tool.TILE || tool == Tool.ERASE) paint((int)wx, (int)wy, true);
+                if (tool == Tool.TILE || tool == Tool.ERASE) paint(cellX(e.getX()), cellY(e.getY()), true);
                 return;
             }
             switch (tool) {
@@ -156,8 +168,8 @@ final class SceneEditorPane extends SplitPane {
                     }
                     rebuildInspector(); redraw();
                 }
-                case TILE -> paint((int)wx, (int)wy, false);
-                case ERASE -> paint((int)wx, (int)wy, true);
+                case TILE -> paint(cellX(e.getX()), cellY(e.getY()), false);
+                case ERASE -> paint(cellX(e.getX()), cellY(e.getY()), true);
                 case ENTITY -> {
                     selected = createObject(wx, wy); refreshHierarchy(); hierarchy.getSelectionModel().select(selected);
                     tool = Tool.SELECT; selectTool.setSelected(true);
@@ -166,14 +178,18 @@ final class SceneEditorPane extends SplitPane {
             }
         });
         canvas.setOnMouseDragged(e -> {
-            double z = zoom.getValue(), wx = e.getX()/z, wy = e.getY()/z;
+            double cell = cellSize(), wx = e.getX()/cell, wy = e.getY()/cell;
             if (tool == Tool.SELECT && dragging && selected != null) {
                 selected.x = snap(wx - dragX); selected.y = snap(wy - dragY); app.changed(); redraw();
-            } else if (tool == Tool.TILE) paint((int)wx, (int)wy, false);
-            else if (tool == Tool.ERASE) paint((int)wx, (int)wy, true);
+            } else if (tool == Tool.TILE) paint(cellX(e.getX()), cellY(e.getY()), false);
+            else if (tool == Tool.ERASE) paint(cellX(e.getX()), cellY(e.getY()), true);
         });
         canvas.setOnMouseReleased(e -> { dragging = false; if (selected != null) rebuildInspector(); });
     }
+
+    private int cellX(double pixelX) { return (int)Math.floor(pixelX / cellSize()); }
+    private int cellY(double pixelY) { return (int)Math.floor(pixelY / cellSize()); }
+    private double cellSize() { return app.project().getTileSize() * Math.max(1, zoomScale.getValue() == null ? 1 : zoomScale.getValue()); }
 
     private void refresh() {
         scenePicker.setItems(FXCollections.observableArrayList(app.project().getLevels().values()));
@@ -191,21 +207,33 @@ final class SceneEditorPane extends SplitPane {
     }
     private Level level() { return scenePicker.getValue(); }
     private void resizeCanvas() {
-        Level l = level(); if (l == null) return; double z = zoom.getValue(); canvas.setWidth(l.width*z); canvas.setHeight(l.height*z); redraw();
+        Level l = level(); if (l == null) return;
+        double cell = cellSize();
+        canvas.setWidth(l.width * cell); canvas.setHeight(l.height * cell);
+        gridInfo.setText("Celda " + (int)cell + " px · base " + app.project().getTileSize() + " px");
+        redraw();
     }
 
     private void redraw() {
-        Level l = level(); if (l == null) return; double z = zoom.getValue(); GraphicsContext g = canvas.getGraphicsContext2D();
+        Level l = level(); if (l == null) return;
+        double cell = cellSize(); GraphicsContext g = canvas.getGraphicsContext2D();
         g.setImageSmoothing(false);
         g.setFill(Color.web("#101620")); g.fillRect(0,0,canvas.getWidth(),canvas.getHeight());
         for (int y=0;y<l.height;y++) for (int x=0;x<l.width;x++) {
+            double px = x * cell, py = y * cell;
             TileDef t = app.project().getTiles().get(l.get(x,y)); Image image = t == null ? null : app.image(t.assetKey);
-            if (image != null) g.drawImage(image,x*z,y*z,z,z);
-            else { java.awt.Color c=t==null?java.awt.Color.MAGENTA:t.color; g.setFill(Color.rgb(c.getRed(),c.getGreen(),c.getBlue(),c.getAlpha()/255.0)); g.fillRect(x*z,y*z,z,z); }
-            g.setStroke(Color.rgb(255,255,255,.055)); g.strokeRect(x*z,y*z,z,z);
+            if (image != null) g.drawImage(image, px, py, cell, cell);
+            else {
+                java.awt.Color c=t==null?java.awt.Color.MAGENTA:t.color;
+                g.setFill(Color.rgb(c.getRed(),c.getGreen(),c.getBlue(),c.getAlpha()/255.0)); g.fillRect(px,py,cell,cell);
+            }
         }
+        g.setFill(Color.rgb(255,255,255,.10));
+        for (int x=0;x<=l.width;x++) g.fillRect(x*cell,0,1,l.height*cell);
+        for (int y=0;y<=l.height;y++) g.fillRect(0,y*cell,l.width*cell,1);
+
         l.entities.stream().filter(e -> e.enabled).sorted(Comparator.comparingInt(e -> e.layer)).forEach(e -> {
-            double x=e.x*z,y=e.y*z,w=e.width*z,h=e.height*z; Image image=app.image(e.assetKey);
+            double x=Math.round(e.x*cell),y=Math.round(e.y*cell),w=Math.max(1,Math.round(e.width*cell)),h=Math.max(1,Math.round(e.height*cell)); Image image=app.image(e.assetKey);
             if(image!=null) g.drawImage(image,x,y,w,h); else { g.setFill(Color.web("#55b7ff")); g.fillRoundRect(x,y,w,h,7,7); }
             if(e==selected){g.setStroke(Color.web("#52d3ff"));g.setLineWidth(2);g.strokeRect(x-2,y-2,w+4,h+4);}
         });
@@ -236,7 +264,7 @@ final class SceneEditorPane extends SplitPane {
         for(TextField f:List.of(name,x,y,w,h)){f.setOnAction(e->apply.run());f.focusedProperty().addListener((o,a,b)->{if(!b)apply.run();});}enabled.setOnAction(e->apply.run());sprite.setOnAction(e->apply.run());
         VBox cards=new VBox(8);for(ComponentDef c:selected.components)cards.getChildren().add(componentCard(c));
         ComboBox<String> addType=new ComboBox<>(FXCollections.observableArrayList(GameProject.BUILTIN_COMPONENTS));addType.setPromptText("Añadir comportamiento…");
-        Label behaviorHint = new Label("El comportamiento se aplica al pulsar Probar; no necesitas escribir código para los componentes integrados."); behaviorHint.getStyleClass().add("muted"); behaviorHint.setWrapText(true);
+        Label behaviorHint = new Label("El comportamiento se ejecuta al pulsar Probar; los componentes integrados no necesitan script adicional."); behaviorHint.getStyleClass().add("muted"); behaviorHint.setWrapText(true);
         Button add=new Button("＋ Añadir");add.setOnAction(e->{String type=addType.getValue();if(type!=null&&selected.component(type)==null){selected.components.add(ComponentDef.preset(type));app.changed();app.status(type+" añadido a "+selected.name+": "+GameProject.componentDescription(type));rebuildInspector();}});
         HBox addBar=new HBox(6,addType,add);HBox.setHgrow(addType,Priority.ALWAYS);
         inspector.getChildren().addAll(title(selected.name.toUpperCase(Locale.ROOT)),transform,new Separator(),title("COMPORTAMIENTOS"),cards,addBar,behaviorHint);
