@@ -13,6 +13,7 @@ import javafx.scene.paint.Color;
 import javafx.stage.FileChooser;
 
 import java.nio.file.Files;
+import java.util.ArrayList;
 import java.util.List;
 
 final class GraphicsEditorPane extends SplitPane {
@@ -23,6 +24,7 @@ final class GraphicsEditorPane extends SplitPane {
     private final ImageView preview = new ImageView();
     private final ListView<TileDef> tiles = new ListView<>();
     private final VBox tileInspector = new VBox(10);
+    private final Button sliceButton = new Button("Cortar spritesheet");
 
     GraphicsEditorPane(StudioApp app) {
         this.app = app;
@@ -35,19 +37,27 @@ final class GraphicsEditorPane extends SplitPane {
         VBox box = new VBox(8, title("ASSETS"), assets);
         box.getStyleClass().add("side-panel");
         box.setPadding(new Insets(12));
-        box.setPrefWidth(280);
+        box.setPrefWidth(300);
         VBox.setVgrow(assets, Priority.ALWAYS);
-        Button importB = new Button("Importar imagen"), pixel = new Button("Pixel Lab");
+
+        Button importB = new Button("Importar imagen");
+        Button pixel = new Button("Pixel Lab");
         pixel.getStyleClass().add("primary-button");
+        sliceButton.setDisable(true);
         importB.setOnAction(e -> importAssets());
         pixel.setOnAction(e -> new PixelArtEditor().show(app.owner(), a -> {
             String key = unique(a.key);
             app.project().getAssets().put(key, new Asset(key, key, a.data));
             app.changed();
-            refresh();
-            assets.getSelectionModel().select(app.project().getAssets().get(key));
+            refreshAssets(key);
         }));
-        box.getChildren().add(new HBox(6, importB, pixel));
+        sliceButton.setOnAction(e -> sliceSelected());
+
+        HBox row1 = new HBox(6, importB, pixel);
+        HBox row2 = new HBox(6, sliceButton);
+        sliceButton.setMaxWidth(Double.MAX_VALUE);
+        HBox.setHgrow(sliceButton, Priority.ALWAYS);
+        box.getChildren().addAll(row1, row2);
         return box;
     }
 
@@ -63,7 +73,10 @@ final class GraphicsEditorPane extends SplitPane {
         scroll.setFitToHeight(true);
         scroll.setPannable(true);
         scroll.getStyleClass().add("editor-scroll");
-        assets.getSelectionModel().selectedItemProperty().addListener((o, a, b) -> showPreview(b));
+        assets.getSelectionModel().selectedItemProperty().addListener((o, a, b) -> {
+            showPreview(b);
+            sliceButton.setDisable(b == null || b.image() == null);
+        });
         return scroll;
     }
 
@@ -87,7 +100,7 @@ final class GraphicsEditorPane extends SplitPane {
         VBox box = new VBox(8, title("TILES"), tiles, tileInspector);
         box.getStyleClass().add("side-panel");
         box.setPadding(new Insets(12));
-        box.setPrefWidth(370);
+        box.setPrefWidth(390);
         VBox.setVgrow(tiles, Priority.ALWAYS);
         tiles.getSelectionModel().selectedItemProperty().addListener((o, a, b) -> rebuildInspector());
         Button add = new Button("＋ Tile");
@@ -104,9 +117,24 @@ final class GraphicsEditorPane extends SplitPane {
     }
 
     private void refresh() {
+        Asset selectedAsset = assets.getSelectionModel().getSelectedItem();
+        TileDef selectedTile = tiles.getSelectionModel().getSelectedItem();
         assets.setItems(FXCollections.observableArrayList(app.project().getAssets().values()));
         tiles.setItems(FXCollections.observableArrayList(app.project().getTiles().values()));
-        if (!tiles.getItems().isEmpty()) tiles.getSelectionModel().selectFirst();
+        if (selectedAsset != null) assets.getSelectionModel().select(app.project().getAssets().get(selectedAsset.key));
+        else if (!assets.getItems().isEmpty()) assets.getSelectionModel().selectFirst();
+        if (selectedTile != null) tiles.getSelectionModel().select(app.project().getTiles().get(selectedTile.id));
+        else if (!tiles.getItems().isEmpty()) tiles.getSelectionModel().selectFirst();
+        sliceButton.setDisable(assets.getSelectionModel().getSelectedItem() == null);
+        rebuildInspector();
+    }
+
+    private void refreshAssets(String selectKey) {
+        assets.setItems(FXCollections.observableArrayList(app.project().getAssets().values()));
+        Asset asset = app.project().getAssets().get(selectKey);
+        if (asset != null) assets.getSelectionModel().select(asset);
+        showPreview(asset);
+        sliceButton.setDisable(asset == null);
         rebuildInspector();
     }
 
@@ -141,7 +169,9 @@ final class GraphicsEditorPane extends SplitPane {
         row(form, 1, "Imagen", sprite);
         form.add(walk, 1, 2);
         form.add(color, 1, 3);
-        tileInspector.getChildren().add(form);
+        Label hint = new Label("Los tiles se dibujan exactamente dentro de una celda de la cuadrícula. El zoom de Escena usa múltiplos enteros del tileSize del proyecto.");
+        hint.getStyleClass().add("muted"); hint.setWrapText(true);
+        tileInspector.getChildren().addAll(form, hint);
     }
 
     private void importAssets() {
@@ -150,16 +180,43 @@ final class GraphicsEditorPane extends SplitPane {
         fc.getExtensionFilters().add(new FileChooser.ExtensionFilter("Imágenes", "*.png", "*.jpg", "*.jpeg", "*.gif"));
         List<java.io.File> files = fc.showOpenMultipleDialog(app.owner());
         if (files == null) return;
+        String lastKey = null;
         for (java.io.File f : files) {
             try {
                 String key = unique(f.getName());
                 app.project().getAssets().put(key, new Asset(key, f.getName(), Files.readAllBytes(f.toPath())));
+                lastKey = key;
             } catch (Exception ex) {
                 app.error("No se pudo importar " + f.getName(), ex.getMessage());
             }
         }
-        app.changed();
-        refresh();
+        if (lastKey != null) {
+            app.changed();
+            refreshAssets(lastKey);
+            app.status("Imagen importada. Si es una hoja, selecciónala y usa 'Cortar spritesheet'.");
+        }
+    }
+
+    private void sliceSelected() {
+        Asset source = assets.getSelectionModel().getSelectedItem();
+        if (source == null) return;
+        Image image = app.image(source.key);
+        if (image == null || source.image() == null) {
+            app.error("No se puede cortar", "El asset seleccionado no es una imagen válida.");
+            return;
+        }
+        SpritesheetSliceDialog.show(app.owner(), source, image, slices -> {
+            if (slices == null || slices.isEmpty()) return;
+            List<String> added = new ArrayList<>();
+            for (Asset slice : slices) {
+                String key = unique(slice.key);
+                app.project().getAssets().put(key, new Asset(key, key, slice.data));
+                added.add(key);
+            }
+            app.changed();
+            refreshAssets(added.getFirst());
+            app.status("Spritesheet cortada: " + added.size() + " sprites añadidos a Assets.");
+        });
     }
 
     private String unique(String base) {
