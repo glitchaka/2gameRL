@@ -9,7 +9,7 @@ import java.io.InputStream;
 import java.util.*;
 
 public final class GameProject {
-    public static final int FORMAT_VERSION = 2;
+    public static final int FORMAT_VERSION = 3;
 
     private String title = "2gameRL";
     private String startLevel = "level-1";
@@ -40,10 +40,7 @@ public final class GameProject {
         EntityDef player = new EntityDef("player", "Jugador", 2, 2);
         player.assetKey = "placeholder-player.png";
         player.components.add(ComponentDef.preset("PlayerController"));
-        ComponentDef playerRigid = ComponentDef.preset("Rigidbody2D");
-        playerRigid.properties.put("gravityScale", "0");
-        playerRigid.properties.put("drag", "8");
-        player.components.add(playerRigid);
+        player.components.add(ComponentDef.preset("Rigidbody2D"));
         player.components.add(ComponentDef.preset("BoxCollider2D"));
         player.script = "# Los scripts se ejecutan realmente en el juego.\n" +
                 "on start\n" +
@@ -83,46 +80,28 @@ public final class GameProject {
                 }
             }
         } catch (Exception ignored) {
-            // Los recursos de ejemplo nunca deben impedir crear o abrir un proyecto.
         }
     }
 
     private static byte[] placeholderPlayerPng() {
         try {
             int[][] px = {
-                    {0,0,0,1,1,1,1,0,0,0},
-                    {0,0,1,2,2,2,2,1,0,0},
-                    {0,1,2,2,2,2,2,2,1,0},
-                    {0,1,2,3,2,2,3,2,1,0},
-                    {0,1,2,2,2,2,2,2,1,0},
-                    {0,0,1,2,3,3,2,1,0,0},
-                    {0,1,1,4,4,4,4,1,1,0},
-                    {1,4,4,4,4,4,4,4,4,1},
-                    {0,0,1,4,1,1,4,1,0,0},
+                    {0,0,0,1,1,1,1,0,0,0}, {0,0,1,2,2,2,2,1,0,0}, {0,1,2,2,2,2,2,2,1,0},
+                    {0,1,2,3,2,2,3,2,1,0}, {0,1,2,2,2,2,2,2,1,0}, {0,0,1,2,3,3,2,1,0,0},
+                    {0,1,1,4,4,4,4,1,1,0}, {1,4,4,4,4,4,4,4,4,1}, {0,0,1,4,1,1,4,1,0,0},
                     {0,0,1,1,0,0,1,1,0,0}
             };
             int[] colors = {0x00000000, 0xFF172033, 0xFFF2C7A5, 0xFF34445F, 0xFF4FA8FF};
             BufferedImage image = new BufferedImage(10, 10, BufferedImage.TYPE_INT_ARGB);
             for (int y = 0; y < 10; y++) for (int x = 0; x < 10; x++) image.setRGB(x, y, colors[px[y][x]]);
-            ByteArrayOutputStream out = new ByteArrayOutputStream();
-            ImageIO.write(image, "png", out);
-            return out.toByteArray();
-        } catch (Exception e) {
-            return new byte[0];
-        }
+            ByteArrayOutputStream out = new ByteArrayOutputStream(); ImageIO.write(image, "png", out); return out.toByteArray();
+        } catch (Exception e) { return new byte[0]; }
     }
 
     public GameProject deepCopy() {
-        GameProject c = new GameProject();
-        c.title = title;
-        c.startLevel = startLevel;
-        c.startMenu = startMenu;
-        c.tileSize = tileSize;
-        tiles.forEach((k, v) -> c.tiles.put(k, v.copy()));
-        levels.forEach((k, v) -> c.levels.put(k, v.copy()));
-        menus.forEach((k, v) -> c.menus.put(k, v.copy()));
-        assets.forEach((k, v) -> c.assets.put(k, v.copy()));
-        return c;
+        GameProject c = new GameProject(); c.title = title; c.startLevel = startLevel; c.startMenu = startMenu; c.tileSize = tileSize;
+        tiles.forEach((k, v) -> c.tiles.put(k, v.copy())); levels.forEach((k, v) -> c.levels.put(k, v.copy()));
+        menus.forEach((k, v) -> c.menus.put(k, v.copy())); assets.forEach((k, v) -> c.assets.put(k, v.copy())); return c;
     }
 
     public String getTitle() { return title; }
@@ -140,153 +119,72 @@ public final class GameProject {
     public int nextTileId() { return tiles.keySet().stream().mapToInt(Integer::intValue).max().orElse(-1) + 1; }
 
     public static final class TileDef {
-        public final int id;
-        public String name;
-        public Color color;
-        public boolean walkable;
-        public String assetKey;
-        public TileDef(int id, String name, Color color, boolean walkable, String assetKey) {
-            this.id = id; this.name = name; this.color = color; this.walkable = walkable; this.assetKey = assetKey == null ? "" : assetKey;
-        }
-        public TileDef copy() { return new TileDef(id, name, color, walkable, assetKey); }
+        public final int id; public String name; public Color color; public boolean walkable; public String assetKey;
+        public TileDef(int id, String name, Color color, boolean walkable, String assetKey) { this.id=id;this.name=name;this.color=color;this.walkable=walkable;this.assetKey=assetKey==null?"":assetKey; }
+        public TileDef copy() { return new TileDef(id,name,color,walkable,assetKey); }
         @Override public String toString() { return id + " · " + name; }
     }
 
     public static final class Asset {
-        public final String key;
-        public String sourceName;
-        public byte[] data;
-        private transient BufferedImage image;
-        public Asset(String key, String sourceName, byte[] data) { this.key = key; this.sourceName = sourceName; this.data = data; }
-        public BufferedImage image() {
-            if (image == null && data != null) {
-                try { image = ImageIO.read(new ByteArrayInputStream(data)); } catch (Exception ignored) { image = null; }
-            }
-            return image;
-        }
-        public Asset copy() { return new Asset(key, sourceName, data == null ? null : data.clone()); }
-        @Override public String toString() { return sourceName == null ? key : sourceName; }
+        public final String key; public String sourceName; public byte[] data; private transient BufferedImage image;
+        public Asset(String key,String sourceName,byte[] data){this.key=key;this.sourceName=sourceName;this.data=data;}
+        public BufferedImage image(){if(image==null&&data!=null){try{image=ImageIO.read(new ByteArrayInputStream(data));}catch(Exception ignored){image=null;}}return image;}
+        public Asset copy(){return new Asset(key,sourceName,data==null?null:data.clone());}
+        @Override public String toString(){return sourceName==null?key:sourceName;}
     }
 
     public static final class Level {
-        public final String id;
-        public String name;
-        public int width;
-        public int height;
-        public int spawnX;
-        public int spawnY;
-        private int[] cells;
-        public final List<EntityDef> entities = new ArrayList<>();
-
-        public Level(String id, String name, int width, int height) {
-            this.id = id; this.name = name; this.width = Math.max(4, width); this.height = Math.max(4, height);
-            this.cells = new int[this.width * this.height];
-        }
-        public int get(int x, int y) { return cells[y * width + x]; }
-        public void set(int x, int y, int value) { if (x >= 0 && y >= 0 && x < width && y < height) cells[y * width + x] = value; }
-        public int[] cells() { return cells; }
-        public void replaceCells(int[] values) { if (values != null && values.length == width * height) cells = values.clone(); }
-        public void resize(int newWidth, int newHeight) {
-            newWidth = Math.max(4, Math.min(256, newWidth)); newHeight = Math.max(4, Math.min(256, newHeight));
-            int[] next = new int[newWidth * newHeight];
-            int copyW = Math.min(width, newWidth), copyH = Math.min(height, newHeight);
-            for (int y = 0; y < copyH; y++) System.arraycopy(cells, y * width, next, y * newWidth, copyW);
-            width = newWidth; height = newHeight; cells = next;
-            spawnX = Math.max(0, Math.min(width - 1, spawnX)); spawnY = Math.max(0, Math.min(height - 1, spawnY));
-            for (EntityDef e : entities) { e.x = Math.max(0, Math.min(width - 1, e.x)); e.y = Math.max(0, Math.min(height - 1, e.y)); }
-        }
-        public EntityDef entity(String id) { return entities.stream().filter(e -> e.id.equals(id)).findFirst().orElse(null); }
-        public Level copy() {
-            Level c = new Level(id, name, width, height); c.spawnX = spawnX; c.spawnY = spawnY; c.cells = cells.clone();
-            entities.forEach(e -> c.entities.add(e.copy())); return c;
-        }
-        @Override public String toString() { return name; }
+        public final String id; public String name; public int width,height; public int spawnX,spawnY; private int[] cells; public final List<EntityDef> entities=new ArrayList<>();
+        public Level(String id,String name,int width,int height){this.id=id;this.name=name;this.width=Math.max(4,width);this.height=Math.max(4,height);cells=new int[this.width*this.height];}
+        public int get(int x,int y){return cells[y*width+x];}
+        public void set(int x,int y,int value){if(x>=0&&y>=0&&x<width&&y<height)cells[y*width+x]=value;}
+        public int[] cells(){return cells;}
+        public void replaceCells(int[] values){if(values!=null&&values.length==width*height)cells=values.clone();}
+        public void resize(int nw,int nh){nw=Math.max(4,Math.min(256,nw));nh=Math.max(4,Math.min(256,nh));int[]next=new int[nw*nh];int cw=Math.min(width,nw),ch=Math.min(height,nh);for(int y=0;y<ch;y++)System.arraycopy(cells,y*width,next,y*nw,cw);width=nw;height=nh;cells=next;spawnX=Math.max(0,Math.min(width-1,spawnX));spawnY=Math.max(0,Math.min(height-1,spawnY));for(EntityDef e:entities){e.x=Math.max(0,Math.min(width-1,e.x));e.y=Math.max(0,Math.min(height-1,e.y));}}
+        public EntityDef entity(String id){return entities.stream().filter(e->e.id.equals(id)).findFirst().orElse(null);}
+        public Level copy(){Level c=new Level(id,name,width,height);c.spawnX=spawnX;c.spawnY=spawnY;c.cells=cells.clone();entities.forEach(e->c.entities.add(e.copy()));return c;}
+        @Override public String toString(){return name;}
     }
 
     public static final class EntityDef {
-        public final String id;
-        public String name;
-        public double x, y;
-        public double width = 0.82, height = 0.82;
-        public boolean enabled = true;
-        public int layer = 0;
-        public String assetKey = "";
-        public String script = "# Doble clic sobre una entidad para editar su script.\n";
-        public final List<ComponentDef> components = new ArrayList<>();
-        public final LinkedHashMap<String, String> variables = new LinkedHashMap<>();
-
-        public EntityDef(String id, String name, double x, double y) { this.id = id; this.name = name; this.x = x; this.y = y; }
-        public ComponentDef component(String type) { return components.stream().filter(c -> c.type.equals(type)).findFirst().orElse(null); }
-        public boolean has(String type) { return component(type) != null; }
-        public EntityDef copy() {
-            EntityDef c = new EntityDef(id, name, x, y); c.width = width; c.height = height; c.enabled = enabled; c.layer = layer;
-            c.assetKey = assetKey; c.script = script; components.forEach(v -> c.components.add(v.copy())); c.variables.putAll(variables); return c;
-        }
-        @Override public String toString() { return name; }
+        public final String id; public String name; public double x,y; public double width=.82,height=.82; public boolean enabled=true; public int layer=0; public String assetKey=""; public String script="# Doble clic sobre una entidad para editar su script.\n"; public final List<ComponentDef> components=new ArrayList<>(); public final LinkedHashMap<String,String> variables=new LinkedHashMap<>();
+        public EntityDef(String id,String name,double x,double y){this.id=id;this.name=name;this.x=x;this.y=y;}
+        public ComponentDef component(String type){return components.stream().filter(c->c.type.equals(type)).findFirst().orElse(null);}
+        public boolean has(String type){return component(type)!=null;}
+        public EntityDef copy(){EntityDef c=new EntityDef(id,name,x,y);c.width=width;c.height=height;c.enabled=enabled;c.layer=layer;c.assetKey=assetKey;c.script=script;components.forEach(v->c.components.add(v.copy()));c.variables.putAll(variables);return c;}
+        @Override public String toString(){return name;}
     }
 
     public static final class ComponentDef {
-        public final String type;
-        public final LinkedHashMap<String, String> properties = new LinkedHashMap<>();
-        public ComponentDef(String type) { this.type = type; }
-        public ComponentDef(String type, Map<String, String> defaults) { this.type = type; this.properties.putAll(defaults); }
-        public ComponentDef copy() { return new ComponentDef(type, properties); }
-        public String get(String key, String def) { return properties.getOrDefault(key, def); }
-        public double number(String key, double def) { try { return Double.parseDouble(get(key, Double.toString(def))); } catch (NumberFormatException e) { return def; } }
-        public boolean bool(String key, boolean def) { return Boolean.parseBoolean(get(key, Boolean.toString(def))); }
-        public static ComponentDef preset(String type) {
-            LinkedHashMap<String,String> p = new LinkedHashMap<>();
-            p.put("enabled", "true");
-            switch (type) {
-                case "Rigidbody2D" -> { p.put("mass", "1"); p.put("gravityScale", "1"); p.put("drag", "0.4"); p.put("maxSpeed", "12"); }
-                case "BoxCollider2D" -> { p.put("width", "0.82"); p.put("height", "0.82"); p.put("solid", "true"); }
-                case "PlayerController" -> { p.put("speed", "4"); p.put("allowArrows", "true"); }
-                case "Patrol" -> { p.put("axis", "x"); p.put("distance", "4"); p.put("speed", "1.5"); }
-                case "ScenePortal" -> { p.put("targetScene", "level-1"); p.put("targetX", "2"); p.put("targetY", "2"); }
-                case "Trigger" -> { p.put("tag", "trigger"); p.put("once", "false"); }
-                case "Health" -> { p.put("max", "100"); p.put("current", "100"); }
-                case "DamageOnContact" -> p.put("damage", "10");
-                case "Clickable" -> { }
-                default -> {}
-            }
-            return new ComponentDef(type, p);
-        }
-        @Override public String toString() { return type; }
+        public final String type; public final LinkedHashMap<String,String> properties=new LinkedHashMap<>();
+        public ComponentDef(String type){this.type=type;}
+        public ComponentDef(String type,Map<String,String> defaults){this.type=type;properties.putAll(defaults);}
+        public ComponentDef copy(){return new ComponentDef(type,properties);}
+        public String get(String key,String def){return properties.getOrDefault(key,def);}
+        public double number(String key,double def){try{return Double.parseDouble(get(key,Double.toString(def)));}catch(NumberFormatException e){return def;}}
+        public boolean bool(String key,boolean def){return Boolean.parseBoolean(get(key,Boolean.toString(def)));}
+        public static ComponentDef preset(String type){LinkedHashMap<String,String>p=new LinkedHashMap<>();p.put("enabled","true");switch(type){case"Rigidbody2D"->{p.put("mass","1");p.put("gravityScale","0");p.put("drag","8");p.put("maxSpeed","8");}case"BoxCollider2D"->{p.put("width","0.82");p.put("height","0.82");p.put("solid","true");}case"PlayerController"->{p.put("speed","4");p.put("allowArrows","true");}case"Patrol"->{p.put("axis","x");p.put("distance","4");p.put("speed","1.5");}case"ScenePortal"->{p.put("targetScene","level-1");p.put("targetX","2");p.put("targetY","2");}case"Trigger"->{p.put("tag","trigger");p.put("once","false");}case"Health"->{p.put("max","100");p.put("current","100");}case"DamageOnContact"->p.put("damage","10");default->{}}return new ComponentDef(type,p);}
+        @Override public String toString(){return type;}
     }
 
-    public static final List<String> BUILTIN_COMPONENTS = List.of(
-            "Rigidbody2D", "BoxCollider2D", "PlayerController", "Patrol", "ScenePortal", "Trigger", "Health", "DamageOnContact", "Clickable"
-    );
-
-    private static final Map<String, String> COMPONENT_DESCRIPTIONS = Map.ofEntries(
-            Map.entry("Rigidbody2D", "Física: gravedad, velocidad máxima y drag. Por defecto gravityScale=1, así que una entidad nueva cae al añadirlo."),
-            Map.entry("BoxCollider2D", "Colisión rectangular real contra tiles no transitables y contra otros BoxCollider2D sólidos."),
-            Map.entry("PlayerController", "Control inmediato con WASD y, opcionalmente, flechas. La propiedad speed define la velocidad."),
-            Map.entry("Patrol", "Movimiento automático de ida y vuelta desde la posición inicial, respetando axis, distance y speed."),
-            Map.entry("ScenePortal", "Al tocar un PlayerController carga targetScene y lo coloca en targetX/targetY."),
-            Map.entry("Trigger", "Dispara el evento de script 'trigger' al entrar un PlayerController. once=true lo consume tras la primera activación."),
-            Map.entry("Health", "Vida de la entidad. DamageOnContact reduce current y destruye la entidad al llegar a 0."),
-            Map.entry("DamageOnContact", "Aplica damage una vez al comenzar el contacto con una entidad que tenga Health."),
-            Map.entry("Clickable", "Controla si la entidad recibe eventos click/doubleClick. enabled=false bloquea ambos eventos.")
-    );
-
-    public static String componentDescription(String type) {
-        return COMPONENT_DESCRIPTIONS.getOrDefault(type, "Comportamiento integrado del motor.");
-    }
+    public static final List<String> BUILTIN_COMPONENTS=List.of("Rigidbody2D","BoxCollider2D","PlayerController","Patrol","ScenePortal","Trigger","Health","DamageOnContact","Clickable");
 
     public enum MenuAction { START_GAME, OPEN_MENU, EXIT }
+    public enum MenuAnimation { NONE, PULSE, FLOAT, FADE }
+    public enum MenuHoverEffect { NONE, SCALE, GLOW, LIFT }
+
     public static final class MenuButton {
-        public String text; public int x, y, width, height; public MenuAction action; public String target;
-        public MenuButton(String text, int x, int y, int width, int height, MenuAction action, String target) {
-            this.text = text; this.x = x; this.y = y; this.width = width; this.height = height; this.action = action; this.target = target == null ? "" : target;
-        }
-        public MenuButton copy() { return new MenuButton(text, x, y, width, height, action, target); }
-        @Override public String toString() { return text; }
+        public String text; public int x,y,width,height; public MenuAction action; public String target;
+        public String assetKey=""; public String hoverAssetKey=""; public int fontSize=16; public Color textColor=Color.WHITE; public Color backgroundColor=new Color(31,115,170); public MenuAnimation animation=MenuAnimation.NONE; public MenuHoverEffect hoverEffect=MenuHoverEffect.SCALE; public double animationSpeed=1.0;
+        public MenuButton(String text,int x,int y,int width,int height,MenuAction action,String target){this.text=text;this.x=x;this.y=y;this.width=width;this.height=height;this.action=action;this.target=target==null?"":target;}
+        public MenuButton copy(){MenuButton c=new MenuButton(text,x,y,width,height,action,target);c.assetKey=assetKey;c.hoverAssetKey=hoverAssetKey;c.fontSize=fontSize;c.textColor=textColor;c.backgroundColor=backgroundColor;c.animation=animation;c.hoverEffect=hoverEffect;c.animationSpeed=animationSpeed;return c;}
+        @Override public String toString(){return text;}
     }
+
     public static final class MenuScreen {
-        public final String id; public String title; public Color background = new Color(19, 24, 34); public final List<MenuButton> buttons = new ArrayList<>();
-        public MenuScreen(String id, String title) { this.id = id; this.title = title; }
-        public MenuScreen copy() { MenuScreen c = new MenuScreen(id, title); c.background = background; buttons.forEach(b -> c.buttons.add(b.copy())); return c; }
-        @Override public String toString() { return title; }
+        public final String id; public String title; public Color background=new Color(19,24,34); public String backgroundAssetKey=""; public int canvasWidth=640,canvasHeight=480; public int titleX=30,titleY=30,titleWidth=360,titleHeight=80,titleFontSize=34; public Color titleColor=Color.WHITE; public String titleAssetKey=""; public MenuAnimation titleAnimation=MenuAnimation.NONE; public double titleAnimationSpeed=1.0; public final List<MenuButton> buttons=new ArrayList<>();
+        public MenuScreen(String id,String title){this.id=id;this.title=title;}
+        public MenuScreen copy(){MenuScreen c=new MenuScreen(id,title);c.background=background;c.backgroundAssetKey=backgroundAssetKey;c.canvasWidth=canvasWidth;c.canvasHeight=canvasHeight;c.titleX=titleX;c.titleY=titleY;c.titleWidth=titleWidth;c.titleHeight=titleHeight;c.titleFontSize=titleFontSize;c.titleColor=titleColor;c.titleAssetKey=titleAssetKey;c.titleAnimation=titleAnimation;c.titleAnimationSpeed=titleAnimationSpeed;buttons.forEach(b->c.buttons.add(b.copy()));return c;}
+        @Override public String toString(){return title;}
     }
 }
