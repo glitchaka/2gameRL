@@ -20,6 +20,25 @@ final class SpriteRegionDetectorTest {
         assertEquals(new SpriteRegionDetector.Box(13,3,6,7,42),boxes.get(1));
     }
 
+    @Test void detectsSpritesAgainstOpaqueBackgroundColor() {
+        BufferedImage image=new BufferedImage(30,18,BufferedImage.TYPE_INT_ARGB);
+        fill(image,0,0,30,18,0xFF5B6078);
+        fill(image,2,3,7,8,0xFFB7B9C8);
+        fill(image,18,4,8,10,0xFF242633);
+
+        List<SpriteRegionDetector.Box> boxes=SpriteRegionDetector.detect(image,8,10,4,0,0);
+
+        assertEquals(2,boxes.size());
+        assertEquals(2,boxes.get(0).x());
+        assertEquals(3,boxes.get(0).y());
+        assertEquals(7,boxes.get(0).width());
+        assertEquals(8,boxes.get(0).height());
+        assertEquals(18,boxes.get(1).x());
+        assertEquals(4,boxes.get(1).y());
+        assertEquals(8,boxes.get(1).width());
+        assertEquals(10,boxes.get(1).height());
+    }
+
     @Test void mergeGapCanJoinDetachedPartsOfOneSprite() {
         BufferedImage image=new BufferedImage(20,12,BufferedImage.TYPE_INT_ARGB);
         fill(image,2,2,3,5,0xFFFFFFFF);
