@@ -1,43 +1,46 @@
-# 2GameScript — referencia del motor
+# 2GameScript — referencia completa
 
-2GameScript es el lenguaje de eventos de 2gameRL. Cada entidad de una escena puede tener su propio script.
+2GameScript es el lenguaje de eventos de 2gameRL. Cada entidad puede tener su propio script y controlar otras entidades, componentes, variables, escenas y temporizadores.
 
-## Abrir y validar un script
+## Abrir y validar
 
 1. Abre **Escena**.
-2. Selecciona una entidad en la jerarquía o directamente en el lienzo.
-3. Abre la pestaña **Script** o haz doble clic sobre la entidad.
+2. Selecciona una entidad.
+3. Abre **Script** o haz doble clic sobre la entidad.
 4. Escribe el script.
 5. Pulsa **Validar script**.
-6. Usa **Probar** para ejecutarlo sin exportar.
+6. Usa **Probar**.
 
-El mismo tutorial está integrado en Studio desde **Ayuda > Tutorial de scripting**, con **F1** y desde el botón **Tutorial** junto al editor. Los ejemplos del tutorial pueden insertarse directamente en el script seleccionado.
-
-## Estructura
-
-Todo comando debe estar dentro de un bloque `on ... end`:
-
-```text
-# comentario
-on start
-  log "Objeto iniciado"
-end
-
-on click
-  log "clic"
-end
-```
+El tutorial también está integrado en **Ayuda > Tutorial de scripting**, **F1** y el botón **Tutorial** del editor.
 
 ## Eventos
 
-- `start`: al cargar o crear la entidad.
-- `update`: cada frame.
-- `click`: clic sobre la entidad.
-- `doubleClick`: doble clic.
-- `collision`: contacto sólido de `BoxCollider2D`.
-- `trigger`: entrada en un `Trigger` permitida por la matriz física.
+```text
+on start
+end
 
-## Movimiento
+on update
+end
+
+on click
+end
+
+on doubleClick
+end
+
+on collision
+end
+
+on trigger
+end
+
+on destroy
+end
+```
+
+`collision` y `trigger` exponen la entidad contraria mediante la referencia especial `other`.
+
+## Movimiento propio
 
 ```text
 move 1 0
@@ -46,135 +49,310 @@ teleport 8 4
 bounce
 ```
 
-Las posiciones y movimientos usan unidades de tile, no píxeles de pantalla.
+Las coordenadas usan unidades de tile.
 
 ## Teclado
 
-```text
-ifKey W move 0 -0.05
-ifPressed SPACE log "acción"
-```
-
-`ifKey` se repite mientras la tecla siga presionada. `ifPressed` se ejecuta una vez al comenzar la pulsación.
-
-## Variables y propiedades
+Forma corta:
 
 ```text
-setVar monedas 0
-addVar monedas 1
-set width 1.5
-set enabled false
-set renderLayer Personajes
-set physicsLayer Player
+on update
+  ifKey W move 0 -0.05
+  ifPressed SPACE log "acción"
+end
 ```
 
-Propiedades directas soportadas: `x`, `y`, `width`, `height`, `enabled`, `layer`, `renderLayer` y `physicsLayer`. Otros nombres usados con `set` se guardan como variables.
-
-## Sprites y escenas
+Forma de bloque:
 
 ```text
-setSprite hero.png
-loadScene nivel-2
+on update
+  ifKey W
+    move 0 -0.05
+    setVar caminando true
+  end
+end
 ```
 
-Usa la clave exacta del asset y el ID exacto de la escena.
-
-## Destruir una entidad
+## Variables locales
 
 ```text
-destroy
+setVar score 0
+addVar score 5
+mulVar score 2
+divVar score 4
+randomVar suerte 1 100
 ```
 
-Elimina la instancia actual. Una secuencia pendiente por `wait` puede continuar después de que la instancia haya sido retirada del mundo.
+Interpolación:
+
+```text
+log "Score: ${score}"
+log "X: ${prop:x}"
+log "Global: ${global:monedas}"
+log "Otra entidad: ${other}"
+```
+
+## Variables globales
+
+Persisten mientras el juego sigue abierto, incluso al cambiar de escena:
+
+```text
+setGlobal monedas 0
+addGlobal monedas 1
+```
+
+## Condiciones y else
+
+```text
+ifVar score >= 10
+  log "ganaste"
+else
+  log "faltan puntos"
+end
+```
+
+Operadores: `==`, `!=`, `>`, `>=`, `<`, `<=`, `contains`, `startsWith`, `endsWith`.
+
+También:
+
+```text
+ifGlobal monedas >= 5
+  log "puedes comprar"
+end
+
+ifProperty x > 10
+  teleport 2 2
+end
+
+ifEntity enemigo exists
+  log "sigue vivo"
+end
+
+ifComponent self Health enabled
+  log "tengo vida"
+end
+
+ifOther
+  log "evento con otra entidad"
+end
+
+chance 0.25
+  create premio
+end
+```
+
+## Bucles
+
+```text
+repeat 5
+  create chispa
+end
+```
+
+`repeat` acepta entre 0 y 10000 repeticiones.
+
+## Temporizadores
+
+Pausar solo la secuencia actual:
+
+```text
+on click
+  destroy
+  wait 9
+  create pj
+end
+```
+
+Programar sin detener el bloque:
+
+```text
+timer 3 create explosion 8 6
+```
+
+Repetir una acción:
+
+```text
+every 1 5 create chispa
+```
+
+`every <segundos> <cantidad> <comando>` programa el comando la cantidad indicada de veces.
 
 ## Crear entidades
 
 ```text
 create enemigo
+spawn enemigo
 create enemigo 12 8
 ```
 
-`create <entidad>` busca primero el ID de una entidad plantilla de la escena y después su nombre exacto. La nueva instancia copia sprite, componentes, script, tamaño, capas y variables iniciales.
+Se puede usar el ID o el nombre exacto de una entidad plantilla de la escena. Cada instancia recibe un ID de runtime único y ejecuta `on start`.
 
-Sin coordenadas, nace en la posición de la entidad que ejecutó el comando. Con `x y`, nace en esa posición. Cada instancia recibe un ID único de runtime y ejecuta su evento `start`.
+## Referencias de entidad
 
-## `wait`: continuar una secuencia más tarde
+Muchos comandos aceptan:
+
+- `self`: la entidad que ejecuta el script.
+- `other`: la otra entidad de un evento `collision`, `trigger` o `destroy` causado por otra entidad.
+- ID exacto.
+- nombre de entidad.
+
+Ejemplos:
 
 ```text
-on click
-  destroy
-  wait 9
-  create pj
+destroyEntity other
+moveEntity enemigo 1 0
+teleportEntity enemigo 8 4
+setEntity enemigo enabled false
+setEntitySprite enemigo slime.png
+setEntityVar enemigo estado dormido
+addEntityVar enemigo furia 1
+```
+
+## Componentes desde script
+
+```text
+addComponent self Health
+removeComponent self Patrol
+setComponent self Rigidbody2D gravityScale 0
+enableComponent self BoxCollider2D false
+```
+
+También funciona sobre otra entidad:
+
+```text
+setComponent other Health current 25
+```
+
+Tipos integrados:
+
+- `Rigidbody2D`
+- `BoxCollider2D`
+- `PlayerController`
+- `Patrol`
+- `ScenePortal`
+- `Trigger`
+- `Health`
+- `DamageOnContact`
+- `Clickable`
+
+## Vida
+
+```text
+damage other 10
+heal self 20
+```
+
+Requiere `Health` en la entidad objetivo. Al llegar a 0 se ejecuta `on destroy` y se elimina la entidad.
+
+## Escenas y menús
+
+```text
+loadScene bosque
+restartScene
+showMenu pausa
+```
+
+Al cambiar de escena se cancelan los temporizadores de la escena anterior.
+
+## Sprites
+
+```text
+setSprite hero.png
+setEntitySprite enemigo slime.png
+```
+
+## Propiedades
+
+Propiedades directas de entidad:
+
+```text
+set x 10
+set y 4
+set width 1
+set height 1
+set enabled true
+set layer 3
+set renderLayer Personajes
+set physicsLayer Player
+set sprite hero.png
+set vx 2
+set vy 0
+```
+
+Sobre otra entidad:
+
+```text
+setEntity enemigo x 12
+setEntity enemigo physicsLayer Enemy
+```
+
+## stop / return
+
+Detiene el bloque actual:
+
+```text
+ifVar muerto == true
+  stop
 end
 ```
 
-`wait 9` **no congela el juego**. Solo suspende el resto de ese bloque durante nueve segundos. Física, render, input y otros scripts continúan normalmente.
+`return` es alias de `stop`.
 
-Los tiempos negativos son inválidos. `wait` debe ir en una línea propia.
+## BoxCollider2D
 
-## `timer`: programar una acción sin pausar
+Dos entidades activas con `BoxCollider2D`, `solid=true` y capas físicas compatibles se bloquean entre sí. `Rigidbody2D` no es requisito.
 
-```text
-on click
-  timer 3 create explosion 8 6
-  setSprite boton-presionado.png
-  log "explosión programada"
-end
-```
+Las capas físicas únicamente filtran contactos. Los tiles no transitables de una capa con colisión también bloquean.
 
-`timer <segundos> <comando>` programa un comando y continúa inmediatamente con las líneas siguientes. `timer` no puede envolver `wait`.
-
-Al cambiar de escena se cancelan los temporizadores pendientes de la escena anterior.
-
-## Colisiones y capas
-
-`BoxCollider2D` bloquea por sí solo cuando ambos colliders están activos y tienen `solid=true`; **Rigidbody2D no es requisito**.
-
-Las capas visuales controlan delante/detrás. Las capas físicas solo filtran qué categorías pueden colisionar. Por defecto las capas creadas interactúan entre sí. La matriz física también filtra `Trigger`, `DamageOnContact` y `ScenePortal`.
-
-Las capas de tiles pueden ser visibles/ocultas, bloqueadas/desbloqueadas y participar o no en colisión.
-
-## Componentes integrados
-
-- `Rigidbody2D`: `enabled`, `mass`, `gravityScale`, `drag`, `maxSpeed`.
-- `BoxCollider2D`: `enabled`, `width`, `height`, `solid`.
-- `PlayerController`: `enabled`, `speed`, `allowArrows`.
-- `Patrol`: `enabled`, `axis`, `distance`, `speed`.
-- `ScenePortal`: `enabled`, `targetScene`, `targetX`, `targetY`.
-- `Trigger`: `enabled`, `once`.
-- `Health`: `enabled`, `max`, `current`.
-- `DamageOnContact`: `enabled`, `damage`.
-- `Clickable`: `enabled`.
-
-## Referencia de comandos
+## Referencia rápida
 
 ```text
 log <texto>
+print <texto>
 move <x> <y>
 velocity <x> <y>
 teleport <x> <y>
 bounce
 destroy
+destroyEntity <entidad>
 wait <segundos>
 timer <segundos> <comando>
-create <entidad> [x y]
-loadScene <id>
+every <segundos> <cantidad> <comando>
+repeat <cantidad> ... end
+create|spawn <entidad> [x y]
+loadScene <escena>
+restartScene
+showMenu <menú>
 setSprite <asset>
+setEntitySprite <entidad> <asset>
 setVar <nombre> <valor>
 addVar <nombre> <número>
+mulVar <nombre> <número>
+divVar <nombre> <número>
+randomVar <nombre> <min> <max>
+setGlobal <nombre> <valor>
+addGlobal <nombre> <número>
 set <propiedad> <valor>
-ifKey <tecla> <comando>
-ifPressed <tecla> <comando>
+setEntity <entidad> <propiedad> <valor>
+moveEntity <entidad> <x> <y>
+teleportEntity <entidad> <x> <y>
+setEntityVar <entidad> <nombre> <valor>
+addEntityVar <entidad> <nombre> <número>
+addComponent <entidad> <tipo>
+removeComponent <entidad> <tipo>
+setComponent <entidad> <tipo> <propiedad> <valor>
+enableComponent <entidad> <tipo> <true|false>
+damage <entidad> <cantidad>
+heal <entidad> <cantidad>
+ifKey <tecla> [comando]
+ifPressed <tecla> [comando]
+ifVar <nombre> <op> <valor> ... [else ...] end
+ifGlobal <nombre> <op> <valor> ... [else ...] end
+ifProperty <propiedad> <op> <valor> ... [else ...] end
+ifEntity <entidad> <exists|missing> ... end
+ifComponent <entidad> <tipo> [exists|missing|enabled|disabled] ... end
+ifOther ... end
+chance <0..1> ... end
+stop
+return
 ```
-
-## Ejemplo de respawn solicitado
-
-```text
-on click
-  destroy
-  wait 9
-  create pj
-end
-```
-
-La entidad actual desaparece, el juego continúa normalmente y nueve segundos después se crea una nueva instancia de `pj` en la posición original.
