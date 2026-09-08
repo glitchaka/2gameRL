@@ -43,6 +43,9 @@ public final class RuntimeFeatureSmokeApp {
         EntityDef mover=new EntityDef("mover","Mover",5,5);mover.components.add(ComponentDef.preset("BoxCollider2D"));mover.script="on click\n  move 1 0\nend\n";level.entities.add(mover);
         EntityDef blocker=new EntityDef("blocker","Blocker",5.9,5);blocker.components.add(ComponentDef.preset("BoxCollider2D"));level.entities.add(blocker);
 
+        EntityDef grid=new EntityDef("grid","Grid",2,12);ComponentDef gridMove=ComponentDef.preset("GridMovement");gridMove.properties.put("step","2");grid.components.add(gridMove);grid.components.add(ComponentDef.preset("BoxCollider2D"));level.entities.add(grid);
+        EntityDef gridBlocker=new EntityDef("grid-blocker","GridBlocker",4,12);gridBlocker.components.add(ComponentDef.preset("BoxCollider2D"));level.entities.add(gridBlocker);
+
         EntityDef target=new EntityDef("target","Target",11,6);level.entities.add(target);
         EntityDef logic=new EntityDef("logic","Logic",9,9);logic.script="""
                 on start
@@ -73,6 +76,8 @@ public final class RuntimeFeatureSmokeApp {
         System.out.println("ADVANCED_SCRIPT_STATE_OK");
 
         double beforeX=view.debugEntityPosition("mover")[0];view.debugFireClick("mover");double afterX=view.debugEntityPosition("mover")[0];require(Math.abs(beforeX-afterX)<1e-9,"BoxCollider2D dejó atravesar una entidad estática sin Rigidbody2D.");System.out.println("BOXCOLLIDER_STATIC_OK");
+
+        double[] gridBefore=view.debugEntityPosition("grid");require(!view.debugGridStep("grid",1,0),"GridMovement atravesó un BoxCollider2D.");double[] gridBlocked=view.debugEntityPosition("grid");require(Math.abs(gridBefore[0]-gridBlocked[0])<1e-9,"GridMovement cambió X pese al bloqueo.");require(view.debugGridStep("grid",0,-1),"GridMovement no pudo mover a una celda libre.");double[] gridAfter=view.debugEntityPosition("grid");require(Math.abs(gridAfter[1]-10)<1e-9,"GridMovement no respetó step=2.");System.out.println("GRID_MOVEMENT_OK");
 
         view.debugFireClick("spawner");view.debugAdvance(.10);require(view.debugEntityCountByName("PJ")==1,"wait ejecutó create antes del tiempo indicado.");
         view.debugAdvance(.10);require(view.debugHasEntityAt("PJ",7,8),"timer no creó la entidad en la posición explícita.");System.out.println("TIMER_CREATE_OK");
