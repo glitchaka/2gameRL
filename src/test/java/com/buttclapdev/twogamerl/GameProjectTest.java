@@ -16,42 +16,56 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class GameProjectTest {
     @Test
-    void defaultProjectContainsRealPlayerEntityAssetsAndLayers() {
+    void defaultProjectUsesGridMovementAndOnePhysicalSampleSheet() {
         GameProject p = GameProject.createDefault();
         Level level = p.getLevels().get("level-1");
         assertNotNull(level);
         EntityDef player = level.entity("player");
         assertNotNull(player);
-        assertTrue(player.has("PlayerController"));
-        assertTrue(player.has("Rigidbody2D"));
+        assertTrue(player.has("GridMovement"));
         assertTrue(player.has("BoxCollider2D"));
+        assertFalse(player.has("PlayerController"));
+        assertEquals("1", player.component("GridMovement").get("step", ""));
         assertEquals("Player", player.physicsLayer);
         assertEquals("Personajes", player.renderLayer);
-        assertEquals("0", player.component("Rigidbody2D").get("gravityScale", ""));
         assertTrue(p.canCollide("Player", "World"));
-        assertTrue(p.getRenderLayers().contains("Frente"));
-        assertFalse(level.tileLayers.isEmpty());
-        assertEquals("World", level.tileLayers.getFirst().physicsLayer);
+        assertEquals("level-1", p.getMenus().get("main").buttons.getFirst().target);
 
         Asset placeholder = p.getAssets().get("placeholder-player.png");
         assertNotNull(placeholder);
         assertNotNull(placeholder.image());
         assertTrue(placeholder.data.length > 0);
+
+        Asset sheet = p.getAssets().get("sample-sheet-32.png");
+        Asset first = p.getAssets().get("sample-00-00");
+        Asset last = p.getAssets().get("sample-09-09");
+        assertNotNull(sheet);
+        assertTrue(sheet.sourceOnly);
+        assertNotNull(sheet.data);
+        assertNotNull(first);
+        assertNotNull(last);
+        assertTrue(first.isRegion());
+        assertTrue(last.isRegion());
+        assertNull(first.data, "Una región virtual no debe duplicar bytes de la hoja.");
+        assertEquals("sample-sheet-32.png", first.sourceAssetKey);
+        assertEquals(0, first.regionX);
+        assertEquals(0, first.regionY);
+        assertEquals(32, first.regionWidth);
+        assertEquals(32, first.regionHeight);
+        assertEquals(102, p.getAssets().size(), "placeholder + una hoja + 100 regiones virtuales");
+        assertEquals(101, p.getDrawableAssetKeys().size(), "La hoja fuente no debe aparecer como sprite asignable.");
         assertEquals(1, level.get(0, 0));
         assertEquals(0, level.get(2, 2));
-        assertNotNull(p.getAssets().get("sample-sheet-32.png"));
-        assertEquals(102, p.getAssets().size(), "placeholder + sheet + 100 sprites de muestra");
-        assertNotNull(p.getAssets().get("sample-00-00.png").image());
-        assertNotNull(p.getAssets().get("sample-09-09.png").image());
     }
 
     @Test
-    void projectRoundTripPreservesEntitiesComponentsLayersMenusScriptsAndAssets() throws Exception {
+    void projectRoundTripPreservesGroupsRegionsLayersMenusScriptsAndComponents() throws Exception {
         GameProject p = GameProject.createDefault();
         Level level = p.getLevels().get("level-1");
 
         EntityDef enemy = new EntityDef("enemy-1", "Enemigo", 5.25, 6.5);
-        enemy.assetKey = "placeholder-player.png";
+        enemy.group = "Enemigos";
+        enemy.assetKey = "sample-02-00";
         enemy.renderLayer = "Personajes";
         enemy.physicsLayer = "Enemy";
         enemy.components.add(ComponentDef.preset("Patrol"));
@@ -61,21 +75,26 @@ class GameProjectTest {
         level.entities.add(enemy);
 
         TileLayer foreground = new TileLayer("foreground", "Frente", level.width, level.height, 4);
-        int[] empty = new int[level.width * level.height]; Arrays.fill(empty, -1); foreground.replaceCells(empty);
-        foreground.set(3, 3, 1); foreground.visible = true; foreground.locked = true; foreground.collision = false; foreground.physicsLayer = "World";
+        int[] empty = new int[level.width * level.height];
+        Arrays.fill(empty, -1);
+        foreground.replaceCells(empty);
+        foreground.set(3, 3, 1);
+        foreground.visible = true;
+        foreground.locked = true;
+        foreground.collision = false;
+        foreground.physicsLayer = "World";
         level.tileLayers.add(foreground);
-
         p.setCollision("Player", "Enemy", false);
 
         MenuScreen menu = p.getMenus().get("main");
-        menu.backgroundAssetKey = "sample-00-00.png";
-        menu.titleAssetKey = "sample-01-00.png";
+        menu.backgroundAssetKey = "sample-00-00";
+        menu.titleAssetKey = "sample-01-00";
         menu.titleAnimation = MenuAnimation.PULSE;
         menu.titleAnimationSpeed = 1.75;
         menu.titleFontSize = 40;
         MenuButton play = menu.buttons.getFirst();
-        play.assetKey = "sample-02-00.png";
-        play.hoverAssetKey = "sample-03-00.png";
+        play.assetKey = "sample-02-00";
+        play.hoverAssetKey = "sample-03-00";
         play.animation = MenuAnimation.FLOAT;
         play.hoverEffect = MenuHoverEffect.GLOW;
         play.animationSpeed = 1.4;
@@ -86,9 +105,16 @@ class GameProjectTest {
             ProjectIO.save(p, file);
             GameProject loaded = ProjectIO.load(file);
             assertEquals(p.getTitle(), loaded.getTitle());
-            assertNotNull(loaded.getAssets().get("placeholder-player.png").image());
             assertEquals(102, loaded.getAssets().size());
             assertFalse(loaded.canCollide("Player", "Enemy"));
+
+            Asset loadedSheet = loaded.getAssets().get("sample-sheet-32.png");
+            Asset loadedRegion = loaded.getAssets().get("sample-02-00");
+            assertNotNull(loadedSheet.data);
+            assertTrue(loadedSheet.sourceOnly);
+            assertTrue(loadedRegion.isRegion());
+            assertNull(loadedRegion.data);
+            assertEquals("sample-sheet-32.png", loadedRegion.sourceAssetKey);
 
             Level loadedLevel = loaded.getLevels().get("level-1");
             assertEquals(2, loadedLevel.tileLayers.size());
@@ -100,8 +126,10 @@ class GameProjectTest {
 
             EntityDef loadedEnemy = loadedLevel.entity("enemy-1");
             assertNotNull(loadedEnemy);
+            assertEquals("Enemigos", loadedEnemy.group);
             assertEquals(5.25, loadedEnemy.x, 1e-9);
             assertEquals(6.5, loadedEnemy.y, 1e-9);
+            assertEquals("sample-02-00", loadedEnemy.assetKey);
             assertEquals("Personajes", loadedEnemy.renderLayer);
             assertEquals("Enemy", loadedEnemy.physicsLayer);
             assertTrue(loadedEnemy.has("Patrol"));
@@ -110,13 +138,14 @@ class GameProjectTest {
             assertTrue(loadedEnemy.script.contains("addVar ticks 1"));
 
             MenuScreen loadedMenu = loaded.getMenus().get("main");
-            assertEquals("sample-00-00.png", loadedMenu.backgroundAssetKey);
-            assertEquals("sample-01-00.png", loadedMenu.titleAssetKey);
+            assertEquals("sample-00-00", loadedMenu.backgroundAssetKey);
+            assertEquals("sample-01-00", loadedMenu.titleAssetKey);
             assertEquals(MenuAnimation.PULSE, loadedMenu.titleAnimation);
             assertEquals(1.75, loadedMenu.titleAnimationSpeed, 1e-9);
             MenuButton loadedPlay = loadedMenu.buttons.getFirst();
-            assertEquals("sample-02-00.png", loadedPlay.assetKey);
-            assertEquals("sample-03-00.png", loadedPlay.hoverAssetKey);
+            assertEquals("level-1", loadedPlay.target);
+            assertEquals("sample-02-00", loadedPlay.assetKey);
+            assertEquals("sample-03-00", loadedPlay.hoverAssetKey);
             assertEquals(MenuAnimation.FLOAT, loadedPlay.animation);
             assertEquals(MenuHoverEffect.GLOW, loadedPlay.hoverEffect);
         } finally {
@@ -158,8 +187,12 @@ class GameProjectTest {
             put(zip, "tiles.properties", tiles);
 
             Properties level = new Properties();
-            level.setProperty("id", "old"); level.setProperty("name", "Viejo"); level.setProperty("width", "4"); level.setProperty("height", "4");
-            level.setProperty("spawnX", "2"); level.setProperty("spawnY", "1");
+            level.setProperty("id", "old");
+            level.setProperty("name", "Viejo");
+            level.setProperty("width", "4");
+            level.setProperty("height", "4");
+            level.setProperty("spawnX", "2");
+            level.setProperty("spawnY", "1");
             level.setProperty("cells", "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0");
             put(zip, "levels/old.properties", level);
         }
