@@ -4,13 +4,13 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.buttclapdev</groupId>
     <artifactId>2gameRL-studio</artifactId>
-    <version>2.0.0</version>
+    <version>2.0.1</version>
     <name>2gameRL Studio</name>
 
     <properties>
         <maven.compiler.release>21</maven.compiler.release>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <javafx.version>21.0.12</javafx.version>
+        <javafx.version>21.0.10</javafx.version>
     </properties>
 
     <dependencies>
