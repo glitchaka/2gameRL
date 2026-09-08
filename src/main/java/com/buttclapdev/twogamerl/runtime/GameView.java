@@ -130,7 +130,13 @@ public final class GameView extends StackPane {
             bodies.values().stream()
                     .filter(b -> activeComponent(b, "PlayerController") != null)
                     .findFirst()
-                    .ifPresent(b -> { b.def.x = targetX; b.def.y = targetY; b.originX = targetX; b.originY = targetY; });
+                    .ifPresent(b -> {
+                        b.def.x = targetX;
+                        b.def.y = targetY;
+                        b.originX = targetX;
+                        b.originY = targetY;
+                        logger.accept("[Runtime] Player positioned @ " + number(targetX) + "," + number(targetY));
+                    });
         }
         for (Body body : List.copyOf(bodies.values())) fire(body, ScriptProgram.Event.START, null);
     }
@@ -221,13 +227,17 @@ public final class GameView extends StackPane {
             body.def.x = nx; body.def.y = ny; return;
         }
 
-        if (dx != 0) body.vx = 0;
-        if (dy != 0) body.vy = 0;
+        double beforeVx = body.vx;
+        double beforeVy = body.vy;
         if (activeComponent(body, "Patrol") != null) body.patrolDirection *= -1;
-        if (!collisionEvent) return;
 
-        if (block.other != null) processContact(body, block.other, true);
-        else fire(body, ScriptProgram.Event.COLLISION, null);
+        if (collisionEvent) {
+            if (block.other != null) processContact(body, block.other, true);
+            else fire(body, ScriptProgram.Event.COLLISION, null);
+        }
+
+        if (dx != 0 && Double.compare(body.vx, beforeVx) == 0) body.vx = 0;
+        if (dy != 0 && Double.compare(body.vy, beforeVy) == 0) body.vy = 0;
     }
 
     private Block blocked(Body body, double x, double y) {
