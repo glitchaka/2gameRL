@@ -95,8 +95,11 @@ public final class StudioApp extends Application {
         MenuItem export = item("Exportar juego…", "Ctrl+E", e -> exportGame());
         MenuItem exit = item("Salir", "", e -> requestClose());
         file.getItems().addAll(n, open, new SeparatorMenuItem(), save, saveAs, new SeparatorMenuItem(), export, new SeparatorMenuItem(), exit);
+
         Menu help = new Menu("Ayuda");
-        MenuItem quick = new MenuItem("Guía de 60 segundos"); quick.setOnAction(e -> quickGuide()); help.getItems().add(quick);
+        MenuItem quick = new MenuItem("Guía de 60 segundos"); quick.setOnAction(e -> quickGuide());
+        MenuItem scripting = item("Tutorial de scripting", "F1", e -> ScriptTutorialDialog.show(stage));
+        help.getItems().addAll(quick, scripting);
         MenuBar menuBar = new MenuBar(file, help);
 
         Button bNew = button("＋ Nuevo", e -> newProject());
@@ -343,8 +346,9 @@ public final class StudioApp extends Application {
                 "2. Doble clic en un objeto: abre su Script.\n" +
                 "3. Inspector > Comportamientos: añade Rigidbody2D, Collider, PlayerController, Patrol, etc.\n" +
                 "4. Gráficos: importa imágenes o usa Pixel Lab.\n" +
-                "5. ▶ Probar ejecuta el proyecto sin exportarlo.\n" +
-                "6. Exportar crea la aplicación autocontenida y un ZIP portable.");
+                "5. Ayuda > Tutorial de scripting (F1): sintaxis, eventos, comandos, ejemplos y componentes.\n" +
+                "6. ▶ Probar ejecuta el proyecto sin exportarlo.\n" +
+                "7. Exportar crea la aplicación autocontenida y un ZIP portable.");
     }
     private void updateTitle() {
         if (stage == null) return;
