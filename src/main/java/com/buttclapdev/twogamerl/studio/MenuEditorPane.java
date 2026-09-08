@@ -1,6 +1,7 @@
 package com.buttclapdev.twogamerl.studio;
 
 import com.buttclapdev.twogamerl.model.GameProject.*;
+import com.buttclapdev.twogamerl.model.GameProject.MenuButton;
 import com.buttclapdev.twogamerl.runtime.MenuEffects;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
@@ -37,6 +38,8 @@ final class MenuEditorPane extends SplitPane {
         VBox box = new VBox(8, title("PANTALLAS"), picker);
         box.getStyleClass().add("side-panel"); box.setPadding(new Insets(12)); box.setPrefWidth(245);
         picker.setMaxWidth(Double.MAX_VALUE);
+        picker.setButtonCell(menuCell());
+        picker.setCellFactory(v -> menuCell());
         picker.setOnAction(e -> { selection = Selection.SCREEN; selectedButton = null; render(); rebuildInspector(); });
         Button add = new Button("＋ Pantalla");
         Button remove = new Button("Eliminar pantalla"); remove.getStyleClass().add("danger-button");
@@ -45,6 +48,20 @@ final class MenuEditorPane extends SplitPane {
         box.getChildren().addAll(new HBox(6, add, remove), new Separator(), title("ELEMENTOS"), addButton,
                 hint("Haz clic en el fondo, el título o un botón para editarlo. Arrastra título y botones directamente sobre el lienzo."));
         return box;
+    }
+
+    private ListCell<MenuScreen> menuCell() {
+        return new ListCell<>() {
+            @Override protected void updateItem(MenuScreen item, boolean empty) {
+                super.updateItem(item, empty);
+                setText(empty || item == null ? "" : item.title);
+            }
+        };
+    }
+
+    private void refreshPickerLabel(MenuScreen menu) {
+        if (menu != null && picker.getValue() == menu && picker.getButtonCell() != null) picker.getButtonCell().setText(menu.title);
+        picker.requestLayout();
     }
 
     private Node center() {
@@ -163,7 +180,7 @@ final class MenuEditorPane extends SplitPane {
         Runnable apply = () -> {
             m.title = screenName.getText(); m.background = awt(background.getValue()); m.backgroundAssetKey = assetValue(backgroundSprite);
             m.canvasWidth = clamp(parseInt(width,m.canvasWidth),320,1920); m.canvasHeight = clamp(parseInt(height,m.canvasHeight),240,1080);
-            if (initial.isSelected()) app.project().setStartMenu(m.id); app.changed(); picker.refresh(); render();
+            if (initial.isSelected()) app.project().setStartMenu(m.id); app.changed(); refreshPickerLabel(m); render();
         };
         bind(screenName, apply); bind(width, apply); bind(height, apply); background.setOnAction(e->apply.run());backgroundSprite.setOnAction(e->apply.run());initial.setOnAction(e->apply.run());
         GridPane form=form();row(form,0,"Título",screenName);row(form,1,"Fondo",background);row(form,2,"Sprite fondo",backgroundSprite);row(form,3,"Ancho",width);row(form,4,"Alto",height);
@@ -173,7 +190,7 @@ final class MenuEditorPane extends SplitPane {
     private void titleInspector(MenuScreen m) {
         TextField text=new TextField(m.title),x=num(m.titleX),y=num(m.titleY),w=num(m.titleWidth),h=num(m.titleHeight),font=num(m.titleFontSize),speed=new TextField(format(m.titleAnimationSpeed));
         ColorPicker color=pickerColor(m.titleColor);ComboBox<String> sprite=assetPicker(m.titleAssetKey);ComboBox<MenuAnimation> animation=new ComboBox<>(FXCollections.observableArrayList(MenuAnimation.values()));animation.setValue(m.titleAnimation);
-        Runnable apply=()->{m.title=text.getText();m.titleX=parseInt(x,m.titleX);m.titleY=parseInt(y,m.titleY);m.titleWidth=Math.max(1,parseInt(w,m.titleWidth));m.titleHeight=Math.max(1,parseInt(h,m.titleHeight));m.titleFontSize=Math.max(8,parseInt(font,m.titleFontSize));m.titleColor=awt(color.getValue());m.titleAssetKey=assetValue(sprite);m.titleAnimation=animation.getValue();m.titleAnimationSpeed=Math.max(.2,parseDouble(speed,m.titleAnimationSpeed));app.changed();picker.refresh();render();};
+        Runnable apply=()->{m.title=text.getText();m.titleX=parseInt(x,m.titleX);m.titleY=parseInt(y,m.titleY);m.titleWidth=Math.max(1,parseInt(w,m.titleWidth));m.titleHeight=Math.max(1,parseInt(h,m.titleHeight));m.titleFontSize=Math.max(8,parseInt(font,m.titleFontSize));m.titleColor=awt(color.getValue());m.titleAssetKey=assetValue(sprite);m.titleAnimation=animation.getValue();m.titleAnimationSpeed=Math.max(.2,parseDouble(speed,m.titleAnimationSpeed));app.changed();refreshPickerLabel(m);render();};
         for(TextField f:new TextField[]{text,x,y,w,h,font,speed})bind(f,apply);color.setOnAction(e->apply.run());sprite.setOnAction(e->apply.run());animation.setOnAction(e->apply.run());
         GridPane form=form();row(form,0,"Texto",text);row(form,1,"X",x);row(form,2,"Y",y);row(form,3,"Ancho",w);row(form,4,"Alto",h);row(form,5,"Fuente",font);row(form,6,"Color",color);row(form,7,"Sprite/logo",sprite);row(form,8,"Animación",animation);row(form,9,"Velocidad",speed);
         inspector.getChildren().addAll(title("TÍTULO"),form,hint("Puedes dejar el texto vacío y usar únicamente un sprite como logo, o combinar ambos."));
