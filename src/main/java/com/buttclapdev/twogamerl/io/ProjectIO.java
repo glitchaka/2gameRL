@@ -42,11 +42,17 @@ public final class ProjectIO {
             for (MenuScreen menu : project.getMenus().values()) writeMenu(zip, menu);
 
             for (Asset asset : project.getAssets().values()) {
-                if (asset.data == null) continue;
-                putBytes(zip, "assets/" + asset.key, asset.data);
                 Properties meta = new Properties();
                 meta.setProperty("sourceName", safe(asset.sourceName));
+                meta.setProperty("sourceOnly", Boolean.toString(asset.sourceOnly));
+                meta.setProperty("region", Boolean.toString(asset.isRegion()));
+                meta.setProperty("sourceAsset", safe(asset.sourceAssetKey));
+                meta.setProperty("regionX", Integer.toString(asset.regionX));
+                meta.setProperty("regionY", Integer.toString(asset.regionY));
+                meta.setProperty("regionWidth", Integer.toString(asset.regionWidth));
+                meta.setProperty("regionHeight", Integer.toString(asset.regionHeight));
                 putProperties(zip, "asset-meta/" + asset.key + ".properties", meta);
+                if (asset.data != null) putBytes(zip, "assets/" + asset.key, asset.data);
             }
         }
     }
@@ -103,6 +109,7 @@ public final class ProjectIO {
         p.setProperty(k + "height", Double.toString(e.height));
         p.setProperty(k + "enabled", Boolean.toString(e.enabled));
         p.setProperty(k + "layer", Integer.toString(e.layer));
+        p.setProperty(k + "group", safe(e.group));
         p.setProperty(k + "renderLayer", safe(e.renderLayer));
         p.setProperty(k + "physicsLayer", safe(e.physicsLayer));
         p.setProperty(k + "asset", safe(e.assetKey));
@@ -169,9 +176,7 @@ public final class ProjectIO {
         putProperties(zip, "menus/" + menu.id + ".properties", p);
     }
 
-    public static GameProject load(Path file) throws IOException {
-        try (InputStream in = Files.newInputStream(file)) { return load(in); }
-    }
+    public static GameProject load(Path file) throws IOException { try (InputStream in = Files.newInputStream(file)) { return load(in); } }
 
     public static GameProject load(InputStream input) throws IOException {
         GameProject project = new GameProject();
@@ -211,9 +216,25 @@ public final class ProjectIO {
             else if (name.startsWith("assets/") && !name.endsWith("/")) {
                 String key = name.substring("assets/".length());
                 Properties meta = props(entries.get("asset-meta/" + key + ".properties"));
-                project.getAssets().put(key, new Asset(key, meta.getProperty("sourceName", key), entry.getValue()));
+                Asset asset = new Asset(key, meta.getProperty("sourceName", key), entry.getValue(), Boolean.parseBoolean(meta.getProperty("sourceOnly", "false")));
+                project.getAssets().put(key, asset);
             }
         }
+
+        for (Map.Entry<String, byte[]> entry : entries.entrySet()) {
+            String name = entry.getKey();
+            if (!name.startsWith("asset-meta/") || !name.endsWith(".properties")) continue;
+            String key = name.substring("asset-meta/".length(), name.length()-".properties".length());
+            Properties meta = props(entry.getValue());
+            boolean region = Boolean.parseBoolean(meta.getProperty("region", "false"));
+            Asset existing = project.getAssets().get(key);
+            if (region) {
+                Asset virtual = new Asset(key, meta.getProperty("sourceName", key), meta.getProperty("sourceAsset", ""), integer(meta,"regionX",0), integer(meta,"regionY",0), integer(meta,"regionWidth",1), integer(meta,"regionHeight",1));
+                virtual.sourceOnly = Boolean.parseBoolean(meta.getProperty("sourceOnly", "false"));
+                project.getAssets().put(key, virtual);
+            } else if (existing != null) existing.sourceOnly = Boolean.parseBoolean(meta.getProperty("sourceOnly", "false"));
+        }
+
         if (project.getTiles().isEmpty()) project.getTiles().putAll(GameProject.createDefault().getTiles());
         if (version < 2) migrateV1(project);
         inferLegacyLayers(project, version);
@@ -270,11 +291,7 @@ public final class ProjectIO {
 
         int entityCount = integer(p, "entityCount", 0);
         for (int i = 0; i < entityCount; i++) level.entities.add(readEntity(entries, level.id, p, i));
-        if (version < 2 && level.entities.isEmpty()) {
-            int sx = integer(p, "spawnX", 2), sy = integer(p, "spawnY", 2);
-            EntityDef player = legacyPlayer(sx, sy);
-            level.entities.add(player);
-        }
+        if (version < 2 && level.entities.isEmpty()) level.entities.add(legacyPlayer(integer(p,"spawnX",2), integer(p,"spawnY",2)));
         project.getLevels().put(id, level);
     }
 
@@ -282,28 +299,21 @@ public final class ProjectIO {
         String k = "entity." + i + ".";
         String id = p.getProperty(k + "id", "entity-" + (i + 1));
         EntityDef e = new EntityDef(id, p.getProperty(k + "name", id), decimal(p, k + "x", 1), decimal(p, k + "y", 1));
-        e.width = decimal(p, k + "width", .82);
-        e.height = decimal(p, k + "height", .82);
+        e.width = decimal(p, k + "width", .82); e.height = decimal(p, k + "height", .82);
         e.enabled = Boolean.parseBoolean(p.getProperty(k + "enabled", "true"));
-        e.layer = integer(p, k + "layer", 0);
-        e.renderLayer = p.getProperty(k + "renderLayer", "Objetos");
-        e.physicsLayer = p.getProperty(k + "physicsLayer", "Default");
-        e.assetKey = p.getProperty(k + "asset", "");
+        e.layer = integer(p, k + "layer", 0); e.group = p.getProperty(k + "group", "");
+        e.renderLayer = p.getProperty(k + "renderLayer", "Objetos"); e.physicsLayer = p.getProperty(k + "physicsLayer", "Default"); e.assetKey = p.getProperty(k + "asset", "");
         int componentCount = integer(p, k + "componentCount", 0);
         for (int c = 0; c < componentCount; c++) {
             String ck = k + "component." + c + ".";
             ComponentDef component = new ComponentDef(p.getProperty(ck + "type", "Component"));
             int pc = integer(p, ck + "propertyCount", 0);
-            for (int pi = 0; pi < pc; pi++) component.properties.put(
-                    p.getProperty(ck + "property." + pi + ".name", "property" + pi),
-                    p.getProperty(ck + "property." + pi + ".value", ""));
+            for (int pi = 0; pi < pc; pi++) component.properties.put(p.getProperty(ck + "property." + pi + ".name", "property" + pi), p.getProperty(ck + "property." + pi + ".value", ""));
             if (!component.properties.containsKey("enabled")) component.properties.put("enabled", "true");
             e.components.add(component);
         }
         int variableCount = integer(p, k + "variableCount", 0);
-        for (int vi = 0; vi < variableCount; vi++) e.variables.put(
-                p.getProperty(k + "variable." + vi + ".name", "var" + vi),
-                p.getProperty(k + "variable." + vi + ".value", ""));
+        for (int vi = 0; vi < variableCount; vi++) e.variables.put(p.getProperty(k + "variable." + vi + ".name", "var" + vi), p.getProperty(k + "variable." + vi + ".value", ""));
         byte[] script = entries.get("scripts/" + levelId + "/" + id + ".2gs");
         e.script = script == null ? "# Script de " + e.name + "\n" : new String(script, StandardCharsets.UTF_8);
         return e;
@@ -311,50 +321,37 @@ public final class ProjectIO {
 
     private static void inferLegacyLayers(GameProject project, int version) {
         if (version >= 4) return;
-        for (Level level : project.getLevels().values()) {
-            for (EntityDef e : level.entities) {
-                if (e.has("PlayerController")) { e.renderLayer = "Personajes"; e.physicsLayer = "Player"; }
-                else if (e.has("Trigger") || e.has("ScenePortal")) e.physicsLayer = "Trigger";
-                else if (e.has("Patrol") || e.has("DamageOnContact")) { e.renderLayer = "Personajes"; e.physicsLayer = "Enemy"; }
-            }
+        for (Level level : project.getLevels().values()) for (EntityDef e : level.entities) {
+            if (e.has("PlayerController") || e.has("GridMovement")) { e.renderLayer = "Personajes"; e.physicsLayer = "Player"; }
+            else if (e.has("Trigger") || e.has("ScenePortal")) e.physicsLayer = "Trigger";
+            else if (e.has("Patrol") || e.has("DamageOnContact")) { e.renderLayer = "Personajes"; e.physicsLayer = "Enemy"; }
         }
     }
 
     private static EntityDef legacyPlayer(double x, double y) {
         EntityDef player = new EntityDef("player", "Jugador", x, y);
-        player.assetKey = "placeholder-player.png";
-        player.renderLayer = "Personajes";
-        player.physicsLayer = "Player";
+        player.assetKey = "placeholder-player.png"; player.renderLayer = "Personajes"; player.physicsLayer = "Player";
         player.components.add(ComponentDef.preset("PlayerController"));
         ComponentDef body = ComponentDef.preset("Rigidbody2D"); body.properties.put("gravityScale", "0"); player.components.add(body);
-        player.components.add(ComponentDef.preset("BoxCollider2D"));
-        return player;
+        player.components.add(ComponentDef.preset("BoxCollider2D")); return player;
     }
 
     private static void readMenu(GameProject project, byte[] data, String path) throws IOException {
         Properties p = props(data);
         String id = p.getProperty("id", fileStem(path));
         MenuScreen menu = new MenuScreen(id, p.getProperty("title", id));
-        menu.background = new Color(integer(p, "background", new Color(19,24,34).getRGB()), true);
-        menu.backgroundAssetKey = p.getProperty("backgroundAsset", "");
+        menu.background = new Color(integer(p, "background", new Color(19,24,34).getRGB()), true); menu.backgroundAssetKey = p.getProperty("backgroundAsset", "");
         menu.canvasWidth = integer(p, "canvasWidth", 640); menu.canvasHeight = integer(p, "canvasHeight", 480);
-        menu.titleX = integer(p, "titleX", 30); menu.titleY = integer(p, "titleY", 30);
-        menu.titleWidth = integer(p, "titleWidth", 360); menu.titleHeight = integer(p, "titleHeight", 80);
-        menu.titleFontSize = integer(p, "titleFontSize", 34);
-        menu.titleColor = new Color(integer(p, "titleColor", Color.WHITE.getRGB()), true);
-        menu.titleAssetKey = p.getProperty("titleAsset", "");
-        menu.titleAnimation = enumValue(MenuAnimation.class, p.getProperty("titleAnimation"), MenuAnimation.NONE);
-        menu.titleAnimationSpeed = decimal(p, "titleAnimationSpeed", 1);
+        menu.titleX = integer(p, "titleX", 30); menu.titleY = integer(p, "titleY", 30); menu.titleWidth = integer(p, "titleWidth", 360); menu.titleHeight = integer(p, "titleHeight", 80);
+        menu.titleFontSize = integer(p, "titleFontSize", 34); menu.titleColor = new Color(integer(p, "titleColor", Color.WHITE.getRGB()), true); menu.titleAssetKey = p.getProperty("titleAsset", "");
+        menu.titleAnimation = enumValue(MenuAnimation.class, p.getProperty("titleAnimation"), MenuAnimation.NONE); menu.titleAnimationSpeed = decimal(p, "titleAnimationSpeed", 1);
         int count = integer(p, "buttonCount", 0);
         for (int i = 0; i < count; i++) {
             String k = "button." + i + ".";
             MenuButton b = new MenuButton(p.getProperty(k + "text", "Botón"), integer(p,k+"x",100), integer(p,k+"y",100), integer(p,k+"width",180), integer(p,k+"height",44), enumValue(MenuAction.class,p.getProperty(k+"action"),MenuAction.START_GAME), p.getProperty(k+"target",""));
-            b.assetKey = p.getProperty(k+"asset",""); b.hoverAssetKey = p.getProperty(k+"hoverAsset","");
-            b.fontSize = integer(p,k+"fontSize",16); b.textColor = new Color(integer(p,k+"textColor",Color.WHITE.getRGB()),true);
-            b.backgroundColor = new Color(integer(p,k+"backgroundColor",new Color(31,115,170).getRGB()),true);
-            b.animation = enumValue(MenuAnimation.class,p.getProperty(k+"animation"),MenuAnimation.NONE);
-            b.hoverEffect = enumValue(MenuHoverEffect.class,p.getProperty(k+"hoverEffect"),MenuHoverEffect.SCALE);
-            b.animationSpeed = decimal(p,k+"animationSpeed",1);
+            b.assetKey = p.getProperty(k+"asset",""); b.hoverAssetKey = p.getProperty(k+"hoverAsset",""); b.fontSize = integer(p,k+"fontSize",16);
+            b.textColor = new Color(integer(p,k+"textColor",Color.WHITE.getRGB()),true); b.backgroundColor = new Color(integer(p,k+"backgroundColor",new Color(31,115,170).getRGB()),true);
+            b.animation = enumValue(MenuAnimation.class,p.getProperty(k+"animation"),MenuAnimation.NONE); b.hoverEffect = enumValue(MenuHoverEffect.class,p.getProperty(k+"hoverEffect"),MenuHoverEffect.SCALE); b.animationSpeed = decimal(p,k+"animationSpeed",1);
             menu.buttons.add(b);
         }
         project.getMenus().put(id, menu);
@@ -366,22 +363,17 @@ public final class ProjectIO {
     }
 
     private static int[] parseCells(String raw, int size) {
-        String[] values = raw == null ? new String[0] : raw.split(",");
-        int[] result = new int[size];
+        String[] values = raw == null ? new String[0] : raw.split(","); int[] result = new int[size];
         for (int i = 0; i < Math.min(size, values.length); i++) try { result[i] = Integer.parseInt(values[i]); } catch (NumberFormatException ignored) {}
         return result;
     }
 
-    private static void putProperties(ZipOutputStream zip, String path, Properties p) throws IOException {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
-        p.store(new OutputStreamWriter(out, StandardCharsets.UTF_8), "2gameRL");
-        putBytes(zip, path, out.toByteArray());
-    }
-    private static void putBytes(ZipOutputStream zip, String path, byte[] data) throws IOException { ZipEntry entry = new ZipEntry(path); zip.putNextEntry(entry); zip.write(data); zip.closeEntry(); }
-    private static Properties props(byte[] data) throws IOException { Properties p = new Properties(); if (data != null) p.load(new InputStreamReader(new ByteArrayInputStream(data), StandardCharsets.UTF_8)); return p; }
-    private static int integer(Properties p, String key, int def) { try { return Integer.parseInt(p.getProperty(key, Integer.toString(def))); } catch (NumberFormatException e) { return def; } }
-    private static double decimal(Properties p, String key, double def) { try { return Double.parseDouble(p.getProperty(key, Double.toString(def))); } catch (NumberFormatException e) { return def; } }
-    private static String safe(String value) { return value == null ? "" : value; }
-    private static String fileStem(String path) { String n = path.substring(path.lastIndexOf('/') + 1); int dot = n.lastIndexOf('.'); return dot > 0 ? n.substring(0, dot) : n; }
-    private static <E extends Enum<E>> E enumValue(Class<E> type, String raw, E def) { if (raw == null) return def; try { return Enum.valueOf(type, raw); } catch (IllegalArgumentException ex) { return def; } }
+    private static void putProperties(ZipOutputStream zip, String path, Properties p) throws IOException {ByteArrayOutputStream out = new ByteArrayOutputStream();p.store(new OutputStreamWriter(out, StandardCharsets.UTF_8), "2gameRL");putBytes(zip, path, out.toByteArray());}
+    private static void putBytes(ZipOutputStream zip, String path, byte[] data) throws IOException {ZipEntry entry = new ZipEntry(path);zip.putNextEntry(entry);zip.write(data);zip.closeEntry();}
+    private static Properties props(byte[] data) throws IOException {Properties p = new Properties();if (data != null) p.load(new InputStreamReader(new ByteArrayInputStream(data), StandardCharsets.UTF_8));return p;}
+    private static int integer(Properties p, String key, int def) {try{return Integer.parseInt(p.getProperty(key, Integer.toString(def)));}catch(NumberFormatException e){return def;}}
+    private static double decimal(Properties p, String key, double def) {try{return Double.parseDouble(p.getProperty(key, Double.toString(def)));}catch(NumberFormatException e){return def;}}
+    private static String safe(String value){return value==null?"":value;}
+    private static String fileStem(String path){String n=path.substring(path.lastIndexOf('/')+1);int dot=n.lastIndexOf('.');return dot>0?n.substring(0,dot):n;}
+    private static <E extends Enum<E>> E enumValue(Class<E> type,String raw,E def){if(raw==null)return def;try{return Enum.valueOf(type,raw);}catch(IllegalArgumentException ex){return def;}}
 }
