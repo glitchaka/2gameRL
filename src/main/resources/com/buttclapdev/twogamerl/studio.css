@@ -10,6 +10,44 @@
     -fx-text-fill: #e8f0fb;
 }
 .studio-root { -fx-background-color: #0c1119; }
+.window-frame { -fx-border-color: #2b3e53; -fx-border-width: 1; }
+.title-bar {
+    -fx-background-color: linear-gradient(to bottom,#101925,#0c141f);
+    -fx-border-color: transparent transparent #223043 transparent;
+    -fx-min-height: 34;
+    -fx-pref-height: 34;
+    -fx-padding: 0 0 0 10;
+}
+.window-app-mark {
+    -fx-background-color: #178ed5;
+    -fx-text-fill: white;
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-alignment: center;
+    -fx-min-width: 22;
+    -fx-pref-width: 22;
+    -fx-min-height: 22;
+    -fx-pref-height: 22;
+    -fx-background-radius: 5;
+}
+.window-title { -fx-text-fill: #d9e6f4; -fx-font-size: 12px; -fx-font-weight: bold; }
+.window-control {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-background-radius: 0;
+    -fx-border-radius: 0;
+    -fx-min-width: 44;
+    -fx-pref-width: 44;
+    -fx-max-width: 44;
+    -fx-min-height: 33;
+    -fx-pref-height: 33;
+    -fx-max-height: 33;
+    -fx-padding: 0;
+    -fx-font-size: 15px;
+    -fx-text-fill: #cbd8e7;
+}
+.window-control:hover { -fx-background-color: #1d2b3c; -fx-border-color: transparent; }
+.window-close:hover { -fx-background-color: #c42b3a; -fx-text-fill: white; }
 .label { -fx-text-fill: #d9e5f2; }
 .muted { -fx-text-fill: #7f93aa; }
 .ok { -fx-text-fill: #69d69a; }
