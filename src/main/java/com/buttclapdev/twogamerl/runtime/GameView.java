@@ -40,6 +40,7 @@ public final class GameView extends StackPane {
         this.project = source.deepCopy();
         setStyle("-fx-background-color: #0b0f17;");
         getChildren().addAll(canvas, menuLayer);
+        canvas.getGraphicsContext2D().setImageSmoothing(false);
         canvas.widthProperty().bind(widthProperty());
         canvas.heightProperty().bind(heightProperty());
         setFocusTraversable(true);
@@ -222,14 +223,16 @@ public final class GameView extends StackPane {
     }
 
     private void render() {
-        GraphicsContext g=canvas.getGraphicsContext2D(); g.setFill(Color.web("#0b0f17")); g.fillRect(0,0,canvas.getWidth(),canvas.getHeight()); if(level==null)return;
+        GraphicsContext g=canvas.getGraphicsContext2D();
+        g.setImageSmoothing(false);
+        g.setFill(Color.web("#0b0f17")); g.fillRect(0,0,canvas.getWidth(),canvas.getHeight()); if(level==null)return;
         Viewport v=viewport();
         for(int y=0;y<level.height;y++)for(int x=0;x<level.width;x++){
             TileDef t=project.getTiles().get(level.get(x,y)); double px=v.ox+x*v.tile,py=v.oy+y*v.tile;
             Image img=t==null?null:image(t.assetKey); if(img!=null)g.drawImage(img,px,py,v.tile,v.tile); else { java.awt.Color c=t==null?java.awt.Color.MAGENTA:t.color; g.setFill(Color.rgb(c.getRed(),c.getGreen(),c.getBlue(),c.getAlpha()/255.0)); g.fillRect(px,py,v.tile,v.tile); }
         }
         bodies.values().stream().filter(b->!b.destroyed&&b.def.enabled).sorted(Comparator.comparingInt(b->b.def.layer)).forEach(b->{
-            double px=v.ox+b.def.x*v.tile,py=v.oy+b.def.y*v.tile,w=b.def.width*v.tile,h=b.def.height*v.tile; Image img=image(b.def.assetKey);
+            double px=Math.round(v.ox+b.def.x*v.tile),py=Math.round(v.oy+b.def.y*v.tile),w=Math.max(1,Math.round(b.def.width*v.tile)),h=Math.max(1,Math.round(b.def.height*v.tile)); Image img=image(b.def.assetKey);
             if(img!=null)g.drawImage(img,px,py,w,h); else { g.setFill(Color.web("#55b7ff")); g.fillRoundRect(px,py,w,h,6,6); g.setStroke(Color.WHITE); g.strokeRoundRect(px,py,w,h,6,6); }
         });
     }
@@ -238,7 +241,22 @@ public final class GameView extends StackPane {
         if(key==null||key.isBlank())return null; if(imageCache.containsKey(key))return imageCache.get(key); Asset a=project.getAssets().get(key); if(a==null||a.data==null)return null;
         try{Image img=new Image(new ByteArrayInputStream(a.data));imageCache.put(key,img);return img;}catch(Exception e){return null;}
     }
-    private Viewport viewport(){double tile=Math.max(8,Math.min(project.getTileSize()*2.0,Math.min(canvas.getWidth()/Math.max(1,level.width),canvas.getHeight()/Math.max(1,level.height))));return new Viewport(tile,(canvas.getWidth()-level.width*tile)/2,(canvas.getHeight()-level.height*tile)/2);}
+
+    private Viewport viewport() {
+        double base = Math.max(1, project.getTileSize());
+        double fit = Math.min(canvas.getWidth()/Math.max(1,level.width), canvas.getHeight()/Math.max(1,level.height));
+        double tile;
+        if (fit >= base) {
+            double scale = Math.max(1, Math.floor(fit / base));
+            tile = base * scale;
+        } else {
+            tile = Math.max(8, Math.floor(fit));
+        }
+        double ox = Math.floor((canvas.getWidth() - level.width * tile) / 2.0);
+        double oy = Math.floor((canvas.getHeight() - level.height * tile) / 2.0);
+        return new Viewport(tile, ox, oy);
+    }
+
     private boolean isDown(String key){try{return keys.contains(KeyCode.valueOf(key.toUpperCase(Locale.ROOT)));}catch(Exception e){return false;}}
     private boolean isPressed(String key){try{return pressed.contains(KeyCode.valueOf(key.toUpperCase(Locale.ROOT)));}catch(Exception e){return false;}}
 
