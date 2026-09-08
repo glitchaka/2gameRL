@@ -24,6 +24,16 @@ jobs:
         shell: pwsh
         run: mvn -B -ntp clean test package
 
+      - name: Deterministic wait timer create and BoxCollider smoke
+        shell: pwsh
+        run: |
+          $log = & "$env:JAVA_HOME\bin\java.exe" -cp "target\test-classes;target\app-input\*" com.buttclapdev.twogamerl.runtime.RuntimeFeatureSmokeApp 2>&1 | Out-String
+          Write-Host $log
+          if ($LASTEXITCODE -ne 0) { throw "El smoke determinista de runtime fallo." }
+          foreach ($required in @('BOXCOLLIDER_STATIC_OK','TIMER_CREATE_OK','WAIT_DESTROY_CREATE_OK')) {
+            if ($log -notmatch [regex]::Escape($required)) { throw "No se verifico el comportamiento: $required" }
+          }
+
       - name: Create Windows smoke projects
         shell: pwsh
         run: |
