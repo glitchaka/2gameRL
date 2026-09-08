@@ -3,7 +3,6 @@ package com.buttclapdev.twogamerl.studio;
 import com.buttclapdev.twogamerl.model.GameProject;
 import com.buttclapdev.twogamerl.model.GameProject.*;
 import com.buttclapdev.twogamerl.script.ScriptProgram;
-import javafx.application.Platform;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
@@ -25,7 +24,7 @@ final class SceneEditorPane extends SplitPane {
     private final ComboBox<Level> scenePicker = new ComboBox<>();
     private final ListView<EntityDef> hierarchy = new ListView<>();
     private final ComboBox<TileDef> tilePicker = new ComboBox<>();
-    private final Slider zoom = new Slider(18, 72, 38);
+    private final Slider zoom = new Slider(16, 96, 32);
     private final Canvas canvas = new Canvas();
     private final TabPane tabs = new TabPane();
     private final Tab inspectorTab = new Tab("Inspector");
@@ -42,6 +41,7 @@ final class SceneEditorPane extends SplitPane {
 
     SceneEditorPane(StudioApp app) {
         this.app = app;
+        canvas.getGraphicsContext2D().setImageSmoothing(false);
         getItems().addAll(leftPane(), centerPane(), rightPane());
         setDividerPositions(.17, .76);
         refresh();
@@ -74,7 +74,12 @@ final class SceneEditorPane extends SplitPane {
         ToggleButton erase = toolButton("Borrar", group, false, Tool.ERASE);
         ToggleButton object = toolButton("Objeto", group, false, Tool.ENTITY);
         tilePicker.setPrefWidth(170);
-        zoom.setPrefWidth(130); zoom.valueProperty().addListener((o,a,b) -> resizeCanvas());
+        zoom.setPrefWidth(130);
+        zoom.setMajorTickUnit(8);
+        zoom.setMinorTickCount(0);
+        zoom.setBlockIncrement(8);
+        zoom.setSnapToTicks(true);
+        zoom.valueProperty().addListener((o,a,b) -> resizeCanvas());
         Region spacer = new Region(); HBox.setHgrow(spacer, Priority.ALWAYS);
         HBox tools = new HBox(7, selectTool, tile, erase, object, new Separator(), new Label("Tile:"), tilePicker, spacer, new Label("Zoom"), zoom);
         tools.setAlignment(Pos.CENTER_LEFT); tools.setPadding(new Insets(8)); tools.getStyleClass().add("context-toolbar");
@@ -173,6 +178,7 @@ final class SceneEditorPane extends SplitPane {
 
     private void redraw() {
         Level l = level(); if (l == null) return; double z = zoom.getValue(); GraphicsContext g = canvas.getGraphicsContext2D();
+        g.setImageSmoothing(false);
         g.setFill(Color.web("#101620")); g.fillRect(0,0,canvas.getWidth(),canvas.getHeight());
         for (int y=0;y<l.height;y++) for (int x=0;x<l.width;x++) {
             TileDef t = app.project().getTiles().get(l.get(x,y)); Image image = t == null ? null : app.image(t.assetKey);
