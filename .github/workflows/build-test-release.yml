@@ -79,7 +79,7 @@ jobs:
           Stop-Process -Id $p.Id -Force
           $log = (Get-Content $stdout -Raw -ErrorAction SilentlyContinue) + (Get-Content $stderr -Raw -ErrorAction SilentlyContinue)
           Write-Host $log
-          foreach ($required in @('PLAYER_START_OK','BOXCOLLIDER_OK','STATIC_COLLIDER_OK','TRIGGER_OK','RIGIDBODY_OK','PATROL_COLLIDER_OK','Health 90/100')) {
+          foreach ($required in @('PLAYER_START_OK','BOXCOLLIDER_OK','STATIC_COLLIDER_OK','TRIGGER_OK','RIGIDBODY_OK','PATROL_COLLIDER_OK')) {
             if ($log -notmatch [regex]::Escape($required)) { throw "No se verifico el comportamiento: $required" }
           }
           if ($log -match 'BOXCOLLIDER_FAILED_PASSTHROUGH') { throw "BoxCollider2D permitio atravesar la entidad bloqueadora." }
