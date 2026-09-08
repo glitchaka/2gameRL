@@ -101,7 +101,7 @@ jobs:
           $log = (Get-Content $stdout -Raw -ErrorAction SilentlyContinue) + (Get-Content $stderr -Raw -ErrorAction SilentlyContinue)
           Write-Host $log
           if ($log -notmatch 'PORTAL_TARGET_OK') { throw "ScenePortal no cargo la escena destino." }
-          if ($log -notmatch 'Player positioned @ 7,8') { throw "ScenePortal no aplico targetX/targetY." }
+          if ($log -notmatch 'PORTAL_POSITION_7_8') { throw "ScenePortal no aplico targetX/targetY." }
 
       - name: Package Windows Studio
         shell: pwsh
