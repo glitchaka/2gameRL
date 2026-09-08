@@ -24,12 +24,16 @@ jobs:
         shell: pwsh
         run: mvn -B -ntp clean test package
 
-      - name: Create Windows smoke project
+      - name: Create Windows smoke projects
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path target\smoke | Out-Null
           & "$env:JAVA_HOME\bin\java.exe" -cp "target\test-classes;target\app-input\*" com.buttclapdev.twogamerl.SmokeProjectCreator target\smoke\default.2grl
-          if ($LASTEXITCODE -ne 0) { throw "No se pudo crear el proyecto smoke." }
+          if ($LASTEXITCODE -ne 0) { throw "No se pudo crear el proyecto smoke principal." }
+          & "$env:JAVA_HOME\bin\java.exe" -cp "target\test-classes;target\app-input\*" com.buttclapdev.twogamerl.ComponentSmokeProjectCreator components target\smoke\components.2grl
+          if ($LASTEXITCODE -ne 0) { throw "No se pudo crear el proyecto smoke de componentes." }
+          & "$env:JAVA_HOME\bin\java.exe" -cp "target\test-classes;target\app-input\*" com.buttclapdev.twogamerl.ComponentSmokeProjectCreator portal target\smoke\portal.2grl
+          if ($LASTEXITCODE -ne 0) { throw "No se pudo crear el proyecto smoke de portal." }
 
       - name: Runtime and script smoke test on Windows
         shell: pwsh
@@ -48,6 +52,46 @@ jobs:
           $log = (Get-Content $stdout -Raw -ErrorAction SilentlyContinue) + (Get-Content $stderr -Raw -ErrorAction SilentlyContinue)
           Write-Host $log
           if ($log -notmatch '\[Jugador\] Jugador iniciado') { throw "El script start del jugador no se ejecuto en Windows." }
+
+      - name: Built-in components and BoxCollider smoke test on Windows
+        shell: pwsh
+        run: |
+          $stdout = "target\components-smoke.log"
+          $stderr = "target\components-smoke.err.log"
+          $p = Start-Process -FilePath "$env:JAVA_HOME\bin\java.exe" -ArgumentList '-Dtwogamerl.project=target\smoke\components.2grl','-cp','target\app-input\*','com.buttclapdev.twogamerl.runtime.GameLauncher' -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          Start-Sleep -Seconds 8
+          $p.Refresh()
+          if ($p.HasExited) {
+            Get-Content $stdout -ErrorAction SilentlyContinue
+            Get-Content $stderr -ErrorAction SilentlyContinue
+            throw "El runtime de componentes termino antes de tiempo con codigo $($p.ExitCode)."
+          }
+          Stop-Process -Id $p.Id -Force
+          $log = (Get-Content $stdout -Raw -ErrorAction SilentlyContinue) + (Get-Content $stderr -Raw -ErrorAction SilentlyContinue)
+          Write-Host $log
+          foreach ($required in @('PLAYER_START_OK','BOXCOLLIDER_OK','STATIC_COLLIDER_OK','TRIGGER_OK','RIGIDBODY_OK','PATROL_COLLIDER_OK','Health 90/100')) {
+            if ($log -notmatch [regex]::Escape($required)) { throw "No se verifico el comportamiento: $required" }
+          }
+          if ($log -match 'BOXCOLLIDER_FAILED_PASSTHROUGH') { throw "BoxCollider2D permitio atravesar la entidad bloqueadora." }
+
+      - name: ScenePortal smoke test on Windows
+        shell: pwsh
+        run: |
+          $stdout = "target\portal-smoke.log"
+          $stderr = "target\portal-smoke.err.log"
+          $p = Start-Process -FilePath "$env:JAVA_HOME\bin\java.exe" -ArgumentList '-Dtwogamerl.project=target\smoke\portal.2grl','-cp','target\app-input\*','com.buttclapdev.twogamerl.runtime.GameLauncher' -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          Start-Sleep -Seconds 5
+          $p.Refresh()
+          if ($p.HasExited) {
+            Get-Content $stdout -ErrorAction SilentlyContinue
+            Get-Content $stderr -ErrorAction SilentlyContinue
+            throw "El runtime de portal termino antes de tiempo con codigo $($p.ExitCode)."
+          }
+          Stop-Process -Id $p.Id -Force
+          $log = (Get-Content $stdout -Raw -ErrorAction SilentlyContinue) + (Get-Content $stderr -Raw -ErrorAction SilentlyContinue)
+          Write-Host $log
+          if ($log -notmatch 'PORTAL_TARGET_OK') { throw "ScenePortal no cargo la escena destino." }
+          if ($log -notmatch 'Player positioned @ 7,8') { throw "ScenePortal no aplico targetX/targetY." }
 
       - name: Package Windows Studio
         shell: pwsh
