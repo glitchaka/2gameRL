@@ -7,7 +7,7 @@ if "%JAVA_HOME%"=="" (echo ERROR: JAVA_HOME debe apuntar a un JDK 21 completo.& 
 if not exist "%JAVA_HOME%\bin\jpackage.exe" (echo ERROR: %JAVA_HOME% no contiene jpackage.exe.& exit /b 1)
 if not exist "%JAVA_HOME%\bin\java.exe" (echo ERROR: %JAVA_HOME% no contiene java.exe.& exit /b 1)
 set "APP_VERSION="
-for /f "tokens=2 delims=<>" %%v in ('findstr /R /C:"^[ ]*<version>[0-9][^<]*</version>" pom.xml') do if not defined APP_VERSION set "APP_VERSION=%%v"
+for /f "tokens=2 delims=<>" %%v in ('findstr /B /L /C:"    <version>" pom.xml') do if not defined APP_VERSION set "APP_VERSION=%%v"
 if "%APP_VERSION%"=="" (echo ERROR: No se pudo obtener la version desde pom.xml.& exit /b 1)
 set "APP_VERSION=%APP_VERSION: =%"
 set "STUDIO_DIR=build\2gameRL Studio"
