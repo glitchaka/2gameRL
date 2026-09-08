@@ -1,0 +1,54 @@
+.root {
+    -fx-font-family: "Segoe UI", "Inter", sans-serif;
+    -fx-font-size: 13px;
+    -fx-base: #141b26;
+    -fx-background: #0d131d;
+    -fx-control-inner-background: #151e2b;
+    -fx-accent: #48b8ff;
+    -fx-focus-color: #48b8ff;
+    -fx-faint-focus-color: rgba(72,184,255,.16);
+    -fx-text-fill: #e8f0fb;
+}
+.studio-root { -fx-background-color: #0c1119; }
+.label { -fx-text-fill: #d9e5f2; }
+.muted { -fx-text-fill: #7f93aa; }
+.ok { -fx-text-fill: #69d69a; }
+.error { -fx-text-fill: #ff7e8d; }
+.menu-bar { -fx-background-color: #111925; -fx-border-color: transparent transparent #223043 transparent; }
+.menu-bar .label { -fx-text-fill: #dce8f5; }
+.context-menu { -fx-background-color: #172231; -fx-background-radius: 8; -fx-border-color: #2d4055; -fx-border-radius: 8; }
+.main-toolbar { -fx-background-color: linear-gradient(to bottom,#121b28,#0f1722); -fx-border-color: transparent transparent #263649 transparent; }
+.context-toolbar { -fx-background-color: #111a26; -fx-border-color: transparent transparent #273749 transparent; }
+.side-panel { -fx-background-color: #111925; -fx-border-color: #263648; }
+.panel-title { -fx-text-fill: #8fcfff; -fx-font-size: 11px; -fx-font-weight: bold; }
+.button, .toggle-button { -fx-background-color: #1c2938; -fx-text-fill: #dce8f5; -fx-background-radius: 7; -fx-border-radius: 7; -fx-border-color: #304358; -fx-padding: 7 11 7 11; -fx-cursor: hand; }
+.button:hover, .toggle-button:hover { -fx-background-color: #24364a; -fx-border-color: #3f5d78; }
+.toggle-button:selected, .workspace-button:selected { -fx-background-color: #153b56; -fx-border-color: #48b8ff; -fx-text-fill: white; }
+.primary-button { -fx-background-color: linear-gradient(to bottom,#35aef7,#1688d3); -fx-border-color: #5bc4ff; -fx-text-fill: white; -fx-font-weight: bold; }
+.primary-button:hover { -fx-background-color: linear-gradient(to bottom,#4cbdff,#249be6); }
+.danger-button { -fx-background-color: #5b2630; -fx-border-color: #a94455; }
+.danger-ghost { -fx-background-color: transparent; -fx-border-color: transparent; -fx-text-fill: #e98591; -fx-padding: 1 6; }
+.text-field, .text-area, .combo-box, .list-view, .color-picker { -fx-background-color: #151f2c; -fx-border-color: #304257; -fx-border-radius: 6; -fx-background-radius: 6; -fx-text-fill: #ecf4ff; }
+.text-area .content { -fx-background-color: #101722; }
+.combo-box .list-cell { -fx-text-fill: #e7f0fb; -fx-background-color: #151f2c; }
+.list-view .list-cell { -fx-background-color: #111a25; -fx-text-fill: #cedbea; -fx-padding: 8 9; }
+.list-view .list-cell:filled:hover { -fx-background-color: #182637; }
+.list-view .list-cell:filled:selected { -fx-background-color: #16405e; -fx-text-fill: white; }
+.scroll-pane, .editor-scroll { -fx-background-color: #0c1119; -fx-border-color: transparent; }
+.scroll-pane > .viewport { -fx-background-color: #0c1119; }
+.canvas-shell { -fx-background-color: #0a0f16; }
+.component-card { -fx-background-color: #172331; -fx-border-color: #2d4258; -fx-border-radius: 8; -fx-background-radius: 8; -fx-padding: 9; }
+.component-title { -fx-text-fill: #e7f3ff; -fx-font-weight: bold; }
+.tab-pane .tab-header-area .tab-header-background { -fx-background-color: #101823; }
+.tab-pane .tab { -fx-background-color: #15202e; -fx-border-color: transparent transparent #2c4055 transparent; }
+.tab-pane .tab:selected { -fx-background-color: #18344b; -fx-border-color: transparent transparent #48b8ff transparent; }
+.tab-pane .tab-label { -fx-text-fill: #cddbea; }
+.status-bar { -fx-background-color: #0e1721; -fx-text-fill: #87a0b8; -fx-border-color: #263648 transparent transparent transparent; }
+.separator .line { -fx-border-color: #2b3b4e; }
+.menu-canvas { -fx-background-color: #131a24; -fx-border-color: #33485e; -fx-border-width: 1; }
+.menu-preview-title { -fx-text-fill: white; -fx-font-size: 30px; -fx-font-weight: bold; }
+.game-menu-title { -fx-effect: dropshadow(gaussian, rgba(0,0,0,.5), 12, 0.2, 0, 3); }
+.progress-indicator { -fx-progress-color: #48b8ff; }
+.slider .track { -fx-background-color: #26394d; }
+.slider .thumb { -fx-background-color: #48b8ff; }
+.pixel-editor { -fx-background-color: #0c1119; }
