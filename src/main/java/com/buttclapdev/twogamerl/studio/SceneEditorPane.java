@@ -116,9 +116,27 @@ final class SceneEditorPane extends SplitPane {
         script.textProperty().addListener((o,a,b) -> { if (!loading && selected != null) { selected.script = b; app.changed(); validate(false); } });
         Button validate = new Button("Validar script"); validate.getStyleClass().add("primary-button"); validate.setOnAction(e -> validate(true));
         Button template = new Button("Insertar plantilla"); template.setOnAction(e -> { if (selected != null) script.setText(template()); });
+        Button tutorial = new Button("Tutorial"); tutorial.setOnAction(e -> ScriptTutorialDialog.show(app.owner(), this::insertTutorialExample));
         Label help = new Label("Eventos: start · update · click · doubleClick · collision · trigger\nComandos: move · velocity · teleport · bounce · destroy · loadScene · setSprite · setVar · addVar · set · ifKey · ifPressed · log");
         help.getStyleClass().add("muted"); help.setWrapText(true);
-        VBox box = new VBox(8, new HBox(8, validate, template), scriptStatus, script, help); box.setPadding(new Insets(12)); VBox.setVgrow(script, Priority.ALWAYS); return box;
+        VBox box = new VBox(8, new HBox(8, validate, template, tutorial), scriptStatus, script, help); box.setPadding(new Insets(12)); VBox.setVgrow(script, Priority.ALWAYS); return box;
+    }
+
+    private void insertTutorialExample(String example) {
+        if (selected == null || example == null || example.isBlank()) {
+            app.status("Selecciona un objeto antes de insertar un ejemplo de script.");
+            return;
+        }
+        int caret = Math.max(0, Math.min(script.getCaretPosition(), script.getLength()));
+        String current = script.getText();
+        String prefix = caret == 0 ? "" : (current.substring(0, caret).endsWith("\n\n") ? "" : current.substring(0, caret).endsWith("\n") ? "\n" : "\n\n");
+        String suffix = caret >= current.length() ? "" : (current.substring(caret).startsWith("\n\n") ? "" : current.substring(caret).startsWith("\n") ? "\n" : "\n\n");
+        String block = prefix + example.strip() + suffix;
+        script.insertText(caret, block);
+        tabs.getSelectionModel().select(scriptTab);
+        script.requestFocus();
+        script.positionCaret(caret + block.length() - suffix.length());
+        app.status("Ejemplo del tutorial insertado en el script de " + selected.name + ".");
     }
 
     private void installCanvasHandlers() {
