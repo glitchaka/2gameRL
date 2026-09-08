@@ -1,373 +1,150 @@
-# Tutorial de scripting de 2gameRL
+# 2GameScript — referencia del motor
 
-2gameRL usa **2GameScript**, un lenguaje pequeño y orientado a eventos. Cada objeto de una escena puede tener su propio script.
+2GameScript es el lenguaje de eventos de 2gameRL. Cada entidad de una escena puede tener su propio script.
 
-## Dónde se edita
+## Abrir y validar un script
 
 1. Abre **Escena**.
-2. Selecciona un objeto en la jerarquía o directamente en el lienzo.
-3. Haz doble clic sobre el objeto, o abre la pestaña **Script** del inspector.
-4. Escribe el script y usa **Validar script** antes de probar.
-5. Pulsa **Probar** para ejecutar el proyecto sin exportarlo.
+2. Selecciona una entidad en la jerarquía o directamente en el lienzo.
+3. Abre la pestaña **Script** o haz doble clic sobre la entidad.
+4. Escribe el script.
+5. Pulsa **Validar script**.
+6. Usa **Probar** para ejecutarlo sin exportar.
 
-El tutorial interactivo también está disponible dentro de Studio desde **Ayuda > Tutorial de scripting**, con **F1**, y desde el botón **Tutorial** del editor de scripts. Los ejemplos del tutorial pueden insertarse directamente en el script del objeto seleccionado.
+El mismo tutorial está integrado en Studio desde **Ayuda > Tutorial de scripting**, con **F1** y desde el botón **Tutorial** junto al editor. Los ejemplos del tutorial pueden insertarse directamente en el script seleccionado.
 
-## Estructura básica
+## Estructura
 
-Todo comando ejecutable debe estar dentro de un bloque `on ... end`:
+Todo comando debe estar dentro de un bloque `on ... end`:
 
 ```text
-# Esto es un comentario
+# comentario
 on start
   log "Objeto iniciado"
 end
 
-on update
-  ifKey W move 0 -0.05
+on click
+  log "clic"
 end
 ```
-
-- `#` inicia un comentario, salvo que esté dentro de comillas.
-- Usa comillas para textos con espacios.
-- Los nombres de comandos no distinguen mayúsculas/minúsculas.
-- Un bloque `on` siempre debe cerrarse con `end`.
 
 ## Eventos
 
-| Evento | Cuándo se ejecuta |
-| --- | --- |
-| `start` | Una vez al cargar la escena y crear el objeto. |
-| `update` | Cada frame mientras el objeto está activo. |
-| `click` | Al hacer clic sobre el objeto. |
-| `doubleClick` | Al hacer doble clic sobre el objeto. |
-| `collision` | Al comenzar una colisión con otro collider o al chocar contra un tile no transitable. |
-| `trigger` | En una entidad con `Trigger`, al entrar en contacto con un objeto que tenga `PlayerController`. |
-
-Ejemplo:
-
-```text
-on start
-  log "Listo"
-end
-
-on click
-  log "Me hicieron clic"
-end
-
-on collision
-  log "Choque"
-end
-```
+- `start`: al cargar o crear la entidad.
+- `update`: cada frame.
+- `click`: clic sobre la entidad.
+- `doubleClick`: doble clic.
+- `collision`: contacto sólido de `BoxCollider2D`.
+- `trigger`: entrada en un `Trigger` permitida por la matriz física.
 
 ## Movimiento
 
-### `move <x> <y>`
-
-Desplaza inmediatamente el objeto en unidades del mundo.
-
 ```text
 move 1 0
-move 0 -0.25
+velocity 3 -1
+teleport 8 4
+bounce
 ```
 
-### `velocity <x> <y>`
-
-Define la velocidad continua del objeto.
-
-```text
-velocity 3 0
-```
-
-### `teleport <x> <y>`
-
-Coloca el objeto directamente en una posición.
-
-```text
-teleport 10 6
-```
-
-### `bounce`
-
-Invierte la velocidad actual. Está pensado para responder a `collision`.
-
-```text
-on collision
-  bounce
-end
-```
+Las posiciones y movimientos usan unidades de tile, no píxeles de pantalla.
 
 ## Teclado
 
-### `ifKey <tecla> <comando>`
-
-Ejecuta el comando mientras la tecla permanezca presionada.
-
 ```text
-on update
-  ifKey W move 0 -0.05
-  ifKey S move 0 0.05
-  ifKey A move -0.05 0
-  ifKey D move 0.05 0
-end
+ifKey W move 0 -0.05
+ifPressed SPACE log "acción"
 ```
 
-### `ifPressed <tecla> <comando>`
+`ifKey` se repite mientras la tecla siga presionada. `ifPressed` se ejecuta una vez al comenzar la pulsación.
 
-Ejecuta el comando una sola vez cuando la tecla comienza a presionarse.
-
-```text
-on update
-  ifPressed SPACE log "Acción"
-end
-```
-
-Nombres habituales: `W`, `A`, `S`, `D`, `UP`, `DOWN`, `LEFT`, `RIGHT`, `SPACE`, `ENTER`, `SHIFT`, `ESCAPE`.
-
-## Variables
-
-### `setVar <nombre> <valor>`
-
-Guarda un valor en el objeto.
+## Variables y propiedades
 
 ```text
 setVar monedas 0
-setVar estado despierto
-```
-
-### `addVar <nombre> <número>`
-
-Suma un número a una variable. Si la variable no existe o no es numérica, parte desde 0.
-
-```text
 addVar monedas 1
-addVar vida -10
-```
-
-2GameScript todavía no incorpora comparadores generales ni bloques `if/else` basados en variables.
-
-## Propiedades del objeto
-
-`set <propiedad> <valor>` cambia propiedades del objeto en ejecución.
-
-Propiedades directas soportadas:
-
-- `x`
-- `y`
-- `width`
-- `height`
-- `enabled`
-- `layer`
-
-```text
-set x 12
-set y 4
+set width 1.5
 set enabled false
-set layer 5
+set renderLayer Personajes
+set physicsLayer Player
 ```
 
-Cualquier otro nombre pasado a `set` se guarda como variable del objeto.
+Propiedades directas soportadas: `x`, `y`, `width`, `height`, `enabled`, `layer`, `renderLayer` y `physicsLayer`. Otros nombres usados con `set` se guardan como variables.
 
-## Escenas y gráficos
-
-### `loadScene <id>`
-
-Carga otra escena usando su ID.
+## Sprites y escenas
 
 ```text
-on trigger
-  loadScene nivel-2
-end
+setSprite hero.png
+loadScene nivel-2
 ```
 
-### `setSprite <asset>`
+Usa la clave exacta del asset y el ID exacto de la escena.
 
-Cambia el sprite del objeto por la clave exacta de un asset existente.
+## Destruir una entidad
+
+```text
+destroy
+```
+
+Elimina la instancia actual. Una secuencia pendiente por `wait` puede continuar después de que la instancia haya sido retirada del mundo.
+
+## Crear entidades
+
+```text
+create enemigo
+create enemigo 12 8
+```
+
+`create <entidad>` busca primero el ID de una entidad plantilla de la escena y después su nombre exacto. La nueva instancia copia sprite, componentes, script, tamaño, capas y variables iniciales.
+
+Sin coordenadas, nace en la posición de la entidad que ejecutó el comando. Con `x y`, nace en esa posición. Cada instancia recibe un ID único de runtime y ejecuta su evento `start`.
+
+## `wait`: continuar una secuencia más tarde
 
 ```text
 on click
-  setSprite puerta-abierta.png
-end
-```
-
-## Utilidad y ciclo de vida
-
-### `log <texto>`
-
-Escribe en la consola de prueba.
-
-```text
-log "Entró al trigger"
-```
-
-### `destroy`
-
-Elimina el objeto durante la ejecución actual.
-
-```text
-on trigger
-  log "Objeto recogido"
   destroy
+  wait 9
+  create pj
 end
 ```
+
+`wait 9` **no congela el juego**. Solo suspende el resto de ese bloque durante nueve segundos. Física, render, input y otros scripts continúan normalmente.
+
+Los tiempos negativos son inválidos. `wait` debe ir en una línea propia.
+
+## `timer`: programar una acción sin pausar
+
+```text
+on click
+  timer 3 create explosion 8 6
+  setSprite boton-presionado.png
+  log "explosión programada"
+end
+```
+
+`timer <segundos> <comando>` programa un comando y continúa inmediatamente con las líneas siguientes. `timer` no puede envolver `wait`.
+
+Al cambiar de escena se cancelan los temporizadores pendientes de la escena anterior.
+
+## Colisiones y capas
+
+`BoxCollider2D` bloquea por sí solo cuando ambos colliders están activos y tienen `solid=true`; **Rigidbody2D no es requisito**.
+
+Las capas visuales controlan delante/detrás. Las capas físicas solo filtran qué categorías pueden colisionar. Por defecto las capas creadas interactúan entre sí. La matriz física también filtra `Trigger`, `DamageOnContact` y `ScenePortal`.
+
+Las capas de tiles pueden ser visibles/ocultas, bloqueadas/desbloqueadas y participar o no en colisión.
 
 ## Componentes integrados
 
-Los componentes se añaden desde **Inspector > Comportamientos** y se ejecutan sin necesidad de script. Cada componente tiene una propiedad `enabled`; con `false` se desactiva solo ese comportamiento.
-
-### `Rigidbody2D`
-
-Aplica física de movimiento.
-
-- `enabled`: activa/desactiva el componente.
-- `gravityScale`: gravedad aplicada. En entidades nuevas parte en `1`.
-- `drag`: frenado progresivo.
-- `maxSpeed`: límite de velocidad.
-- `mass`: queda disponible para evolución futura del sistema de fuerzas.
-
-El jugador del proyecto por defecto usa `gravityScale=0` porque está configurado como jugador top-down.
-
-### `BoxCollider2D`
-
-Colisión rectangular real.
-
-- `width`: ancho del collider en unidades del mundo.
-- `height`: alto del collider.
-- `solid`: si bloquea movimiento.
-
-Un collider sólido bloquea contra tiles no transitables y contra otros `BoxCollider2D` sólidos.
-
-### `PlayerController`
-
-Convierte el objeto en una entidad controlable inmediatamente.
-
-- `speed`: velocidad.
-- `allowArrows`: permite flechas además de WASD.
-
-No es necesario escribir un script de movimiento para un jugador estándar.
-
-### `Patrol`
-
-Mueve automáticamente la entidad desde su posición inicial hasta la distancia indicada y luego vuelve.
-
-- `axis`: `x` o `y`.
-- `distance`: distancia desde el punto inicial.
-- `speed`: velocidad.
-
-Si la entidad tiene `BoxCollider2D` y choca, invierte la dirección.
-
-### `ScenePortal`
-
-Cambia de escena al entrar en contacto con una entidad que tenga `PlayerController`.
-
-- `targetScene`: ID de la escena destino.
-- `targetX`: posición X del jugador al entrar.
-- `targetY`: posición Y del jugador al entrar.
-
-### `Trigger`
-
-Dispara el evento de script `trigger` cuando entra un objeto con `PlayerController`.
-
-- `tag`: etiqueta disponible para identificar el trigger.
-- `once`: con `true`, se consume después de la primera activación durante esa instancia de la escena.
-
-### `Health`
-
-Vida de la entidad.
-
-- `max`: vida máxima.
-- `current`: vida actual.
-
-El runtime mantiene `current` entre `0` y `max`.
-
-### `DamageOnContact`
-
-Aplica daño al comenzar contacto con una entidad que tenga `Health`.
-
-- `damage`: cantidad de vida restada.
-
-Si `current` llega a 0, la entidad objetivo se destruye durante la ejecución actual.
-
-### `Clickable`
-
-Controla la interacción del ratón.
-
-- `enabled=true`: permite `click` y `doubleClick`.
-- `enabled=false`: bloquea esos eventos.
-
-Para compatibilidad con proyectos anteriores, una entidad sin componente `Clickable` sigue siendo clickeable.
-
-## Recetas
-
-### Jugador top-down
-
-Añade:
-
-- `PlayerController`
-- `BoxCollider2D`
-- `Rigidbody2D` con `gravityScale=0`
-
-No necesitas script para el movimiento básico.
-
-### Objeto con gravedad
-
-Añade:
-
-- `Rigidbody2D`
-- `BoxCollider2D`
-
-Con los valores por defecto caerá y chocará contra tiles o colliders sólidos.
-
-### Enemigo de patrulla
-
-Añade:
-
-- `Patrol`
-- `BoxCollider2D`
-
-Ajusta `axis`, `distance` y `speed`.
-
-### Enemigo que hace daño
-
-Añade:
-
-- `Patrol`
-- `BoxCollider2D`
-- `DamageOnContact`
-
-El objetivo debe tener `Health`.
-
-### Objeto recogible
-
-Añade `Trigger` y usa:
-
-```text
-on trigger
-  log "Objeto recogido"
-  destroy
-end
-```
-
-### Portal sin script
-
-Añade `ScenePortal` y define:
-
-```text
-targetScene = nivel-2
-targetX = 3
-targetY = 5
-```
-
-### Proyectil sencillo
-
-```text
-on start
-  velocity 6 0
-end
-
-on collision
-  destroy
-end
-```
+- `Rigidbody2D`: `enabled`, `mass`, `gravityScale`, `drag`, `maxSpeed`.
+- `BoxCollider2D`: `enabled`, `width`, `height`, `solid`.
+- `PlayerController`: `enabled`, `speed`, `allowArrows`.
+- `Patrol`: `enabled`, `axis`, `distance`, `speed`.
+- `ScenePortal`: `enabled`, `targetScene`, `targetX`, `targetY`.
+- `Trigger`: `enabled`, `once`.
+- `Health`: `enabled`, `max`, `current`.
+- `DamageOnContact`: `enabled`, `damage`.
+- `Clickable`: `enabled`.
 
 ## Referencia de comandos
 
@@ -378,6 +155,9 @@ velocity <x> <y>
 teleport <x> <y>
 bounce
 destroy
+wait <segundos>
+timer <segundos> <comando>
+create <entidad> [x y]
 loadScene <id>
 setSprite <asset>
 setVar <nombre> <valor>
@@ -387,16 +167,14 @@ ifKey <tecla> <comando>
 ifPressed <tecla> <comando>
 ```
 
-## Errores frecuentes
+## Ejemplo de respawn solicitado
 
-- Escribir un comando fuera de `on ... end`.
-- Olvidar `end`.
-- Usar un evento que no existe.
-- Pasar texto donde se espera un número.
-- Usar el nombre visible de una escena cuando `loadScene` necesita su ID.
-- Escribir una clave de sprite inexistente.
-- Esperar que `ifKey` se ejecute una sola vez: para eso está `ifPressed`.
-- Añadir `Rigidbody2D` al jugador top-down y olvidar poner `gravityScale=0`.
-- Esperar que `DamageOnContact` haga algo si el objetivo no tiene `Health`.
+```text
+on click
+  destroy
+  wait 9
+  create pj
+end
+```
 
-El botón **Validar script** usa el mismo parser que ejecuta el runtime.
+La entidad actual desaparece, el juego continúa normalmente y nueve segundos después se crea una nueva instancia de `pj` en la posición original.
