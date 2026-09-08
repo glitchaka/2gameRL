@@ -55,8 +55,8 @@ final class ScriptTutorialDialog {
                     • update — cada frame mientras el objeto está activo.
                     • click — un clic sobre el objeto.
                     • doubleClick — doble clic sobre el objeto.
-                    • collision — colisión con otra entidad o movimiento bloqueado por colisión.
-                    • trigger — una entidad con Trigger se solapa con un objeto que tenga PlayerController.
+                    • collision — al comenzar una colisión con otro collider o al chocar contra un tile no transitable.
+                    • trigger — una entidad con Trigger entra en contacto con un objeto que tenga PlayerController.
 
                     Puedes tener varios bloques de eventos en el mismo script. Cada bloque debe cerrarse con `end`.
                     """,
@@ -65,12 +65,8 @@ final class ScriptTutorialDialog {
                       log "Listo"
                     end
 
-                    on update
-                      # lógica continua
-                    end
-
                     on collision
-                      bounce
+                      log "Choque"
                     end
                     """,
                     "No pongas comandos fuera de un bloque `on ... end`."
@@ -80,11 +76,9 @@ final class ScriptTutorialDialog {
                     """
                     `move x y` desplaza inmediatamente el objeto en unidades del mundo.
 
-                    `velocity x y` define una velocidad continua. El runtime integrará esa velocidad cada frame.
+                    `velocity x y` define una velocidad continua. `teleport x y` coloca directamente el objeto en una posición.
 
-                    `teleport x y` coloca directamente el objeto en una posición.
-
-                    `bounce` invierte las velocidades X e Y actuales, útil dentro de `collision`.
+                    `bounce` invierte la velocidad actual y está pensado para usarse dentro de `collision`.
                     """,
                     """
                     on start
@@ -102,7 +96,7 @@ final class ScriptTutorialDialog {
                     """
                     `ifKey TECLA comando` ejecuta el comando mientras la tecla permanezca presionada.
 
-                    `ifPressed TECLA comando` lo ejecuta solamente al comenzar la pulsación. Úsalo para saltos, disparos, abrir puertas o acciones que no deben repetirse cada frame.
+                    `ifPressed TECLA comando` lo ejecuta solamente al comenzar la pulsación. Úsalo para disparos, abrir puertas o acciones que no deban repetirse cada frame.
 
                     Nombres habituales: W, A, S, D, UP, DOWN, LEFT, RIGHT, SPACE, ENTER, SHIFT y ESCAPE.
                     """,
@@ -115,16 +109,16 @@ final class ScriptTutorialDialog {
                       ifPressed SPACE log "Acción"
                     end
                     """,
-                    "Para un jugador estándar normalmente es más cómodo añadir PlayerController y ajustar `speed`."
+                    "Para un jugador normal es más cómodo añadir PlayerController y ajustar `speed`."
             ),
             new Lesson(
                     "5 · Variables y propiedades",
                     """
                     `setVar nombre valor` guarda estado dentro del objeto. `addVar nombre número` suma un valor numérico; si la variable no existe o no es numérica, parte desde 0.
 
-                    `set propiedad valor` modifica propiedades del objeto en ejecución. Propiedades directas soportadas: x, y, width, height, enabled y layer. Cualquier otro nombre se guarda como variable.
+                    `set propiedad valor` modifica propiedades del objeto en ejecución. Propiedades directas: x, y, width, height, enabled y layer. Cualquier otro nombre se guarda como variable.
 
-                    La versión actual todavía no incorpora comparadores generales, interpolación de variables ni bloques if/else basados en variables.
+                    2GameScript todavía no incorpora comparadores generales ni bloques if/else basados en variables.
                     """,
                     """
                     on start
@@ -138,16 +132,16 @@ final class ScriptTutorialDialog {
                       set height 1.25
                     end
                     """,
-                    "`set enabled false` desactiva el objeto durante la ejecución actual."
+                    "`set enabled false` desactiva la entidad durante la ejecución actual."
             ),
             new Lesson(
                     "6 · Escenas y sprites",
                     """
-                    `loadScene id` solicita cargar otra escena. Debes usar el ID de la escena, no necesariamente el texto visible de su nombre.
+                    `loadScene id` carga otra escena usando su ID.
 
-                    `setSprite asset` cambia el gráfico del objeto por la clave de un asset existente en el proyecto.
+                    `setSprite asset` cambia el gráfico del objeto por la clave exacta de un asset existente en el proyecto.
 
-                    Las claves de assets se ven en el apartado Gráficos. Si importas un archivo, usa exactamente la clave almacenada por Studio.
+                    Si quieres un portal sin escribir código, usa el componente ScenePortal: targetScene carga la escena y targetX/targetY colocan al PlayerController en el destino.
                     """,
                     """
                     on doubleClick
@@ -155,73 +149,70 @@ final class ScriptTutorialDialog {
                       loadScene nivel-2
                     end
                     """,
-                    "Si `loadScene` no encuentra el ID indicado, no podrá cargar esa escena."
+                    "Usa el ID real de la escena, no necesariamente su nombre visible."
             ),
             new Lesson(
                     "7 · Colisiones y triggers",
                     """
-                    `collision` sirve para reaccionar a colisiones normales. Puedes usarlo para destruir un proyectil, rebotar o registrar un impacto.
+                    BoxCollider2D bloquea contra tiles no transitables y contra otros BoxCollider2D sólidos.
 
-                    Para `trigger`, añade el componente Trigger al objeto. El runtime dispara ese evento cuando el objeto se solapa con una entidad que tenga PlayerController.
+                    Trigger no bloquea por sí mismo: dispara `trigger` cuando entra un objeto con PlayerController. `once=true` hace que se ejecute una sola vez durante esa instancia de la escena.
 
                     `destroy` elimina el objeto durante la ejecución actual.
                     """,
                     """
-                    # Objeto recogible: añade también el componente Trigger
+                    # Objeto recogible: añade también Trigger
                     on trigger
                       log "Objeto recogido"
                       addVar recogidos 1
                       destroy
                     end
                     """,
-                    "En esta versión `tag` y `once` del componente Trigger se almacenan, pero todavía no filtran ni consumen automáticamente el trigger."
+                    "Los eventos de contacto se disparan al entrar en contacto, no cada frame mientras dos entidades permanecen superpuestas."
             ),
             new Lesson(
                     "8 · Componentes integrados",
                     """
-                    Los componentes se añaden desde Inspector > Comportamientos. Son conductas predefinidas, similares a añadir componentes en otros motores, y pueden combinarse con scripts.
+                    Los componentes se añaden desde Inspector > Comportamientos y se ejecutan sin necesidad de script. Todos tienen `enabled`; usa false para desactivar ese comportamiento.
 
-                    Rigidbody2D: gravityScale, drag y maxSpeed afectan al movimiento; mass está almacenado pero todavía no participa en fuerzas o impulsos.
+                    Rigidbody2D: gravityScale, drag y maxSpeed afectan al movimiento. En entidades nuevas gravityScale empieza en 1. El jugador de muestra lo usa en 0 porque es top-down.
 
-                    BoxCollider2D: width, height y solid.
+                    BoxCollider2D: width, height y solid. Bloquea tanto contra mapa como contra otros colliders sólidos.
 
-                    PlayerController: speed y allowArrows; agrega control WASD/flechas.
+                    PlayerController: speed y allowArrows. Añade control WASD/flechas inmediatamente.
 
-                    Patrol: axis, distance y speed.
+                    Patrol: axis, distance y speed. Recorre desde la posición inicial hasta la distancia indicada y vuelve; al chocar invierte dirección.
 
-                    ScenePortal: targetScene cambia de escena al tocar al jugador. targetX/targetY están almacenados, pero todavía no reposicionan automáticamente al jugador.
+                    ScenePortal: targetScene, targetX y targetY. Carga la escena y coloca al jugador en esas coordenadas.
 
-                    Trigger: habilita el evento trigger frente a PlayerController.
+                    Trigger: dispara `on trigger`; once=true lo consume tras la primera entrada.
 
                     Health: max y current.
 
-                    DamageOnContact: damage, aplicado a entidades con Health.
+                    DamageOnContact: resta damage a Health al comenzar el contacto y destruye el objetivo si llega a 0.
 
-                    Clickable: actualmente funciona como marcador; click/doubleClick ya llegan a cualquier entidad activa bajo el cursor.
+                    Clickable: enabled=false bloquea click y doubleClick para esa entidad.
                     """,
                     """
-                    # Ejemplo: complemento para un objeto con Rigidbody2D
-                    on start
-                      velocity 4 0
-                    end
-
+                    # Complemento opcional para una entidad física
                     on collision
-                      bounce
+                      log "La física detectó una colisión"
                     end
                     """,
-                    "No necesitas repetir en script lo que ya resuelve un componente: usa scripts para complementar o personalizar."
+                    "No necesitas repetir en script lo que ya resuelve un componente: usa scripts para personalizar."
             ),
             new Lesson(
                     "9 · Recetas útiles",
                     """
-                    Algunas combinaciones frecuentes:
+                    Combinaciones frecuentes:
 
-                    • Jugador: PlayerController + BoxCollider2D; Rigidbody2D si quieres gravedad o drag.
-                    • Proyectil: velocity al iniciar + destroy en collision.
-                    • Recogible: Trigger + destroy en trigger.
-                    • Portal: ScenePortal con targetScene.
-                    • Enemigo simple: Patrol + BoxCollider2D + DamageOnContact.
-                    • Objeto interactivo: click o doubleClick para cambiar sprite, escena o propiedades.
+                    • Jugador top-down: PlayerController + BoxCollider2D + Rigidbody2D con gravityScale=0.
+                    • Objeto con gravedad: Rigidbody2D + BoxCollider2D.
+                    • Enemigo patrulla: Patrol + BoxCollider2D.
+                    • Enemigo dañino: Patrol + BoxCollider2D + DamageOnContact.
+                    • Objetivo dañable: Health + BoxCollider2D.
+                    • Recogible: Trigger + script on trigger + destroy.
+                    • Portal: ScenePortal con targetScene/targetX/targetY.
                     """,
                     """
                     # Proyectil sencillo
@@ -233,7 +224,7 @@ final class ScriptTutorialDialog {
                       destroy
                     end
                     """,
-                    "Empieza con componentes y añade script solamente donde necesites comportamiento específico."
+                    "Empieza con componentes y añade script solo donde necesites lógica específica."
             ),
             new Lesson(
                     "10 · Referencia completa",
@@ -259,10 +250,10 @@ final class ScriptTutorialDialog {
                     Errores frecuentes:
                     • comando fuera de on ... end;
                     • olvidar end;
-                    • nombre de evento inexistente;
+                    • evento inexistente;
                     • texto donde se esperaba un número;
-                    • usar el nombre visible de una escena en vez de su ID;
-                    • usar una clave de sprite inexistente;
+                    • ID de escena incorrecto;
+                    • clave de sprite inexistente;
                     • usar ifKey cuando se quería una sola pulsación.
                     """,
                     """
@@ -270,15 +261,13 @@ final class ScriptTutorialDialog {
                       log "Script válido"
                     end
                     """,
-                    "El botón `Validar script` es la referencia final: usa exactamente el mismo parser que ejecutará el runtime."
+                    "El botón `Validar script` usa el mismo parser que ejecutará el runtime."
             )
     );
 
     private ScriptTutorialDialog() {}
 
-    static void show(Window owner) {
-        show(owner, null);
-    }
+    static void show(Window owner) { show(owner, null); }
 
     static void show(Window owner, Consumer<String> insertHandler) {
         Stage stage = new Stage(StageStyle.UNDECORATED);
@@ -299,107 +288,62 @@ final class ScriptTutorialDialog {
 
         TextField search = new TextField();
         search.setPromptText("Buscar en el tutorial…");
-        VBox left = new VBox(8, new Label("TUTORIAL 2GAMESCRIPT"), search, navigation);
+        Label section = new Label("TUTORIAL 2GAMESCRIPT"); section.getStyleClass().add("panel-title");
+        VBox left = new VBox(8, section, search, navigation);
         left.setPadding(new Insets(14));
         left.getStyleClass().add("side-panel");
         VBox.setVgrow(navigation, Priority.ALWAYS);
 
-        Label heading = new Label();
-        heading.getStyleClass().add("tutorial-heading");
-        Label explanation = new Label();
-        explanation.setWrapText(true);
-        explanation.getStyleClass().add("tutorial-explanation");
-
-        TextArea code = new TextArea();
-        code.setEditable(false);
-        code.setWrapText(false);
-        code.getStyleClass().add("tutorial-code");
-        code.setPrefRowCount(12);
-
-        Label note = new Label();
-        note.setWrapText(true);
-        note.getStyleClass().add("tutorial-note");
-
-        Label status = new Label("Selecciona una lección.");
-        status.getStyleClass().add("muted");
+        Label heading = new Label(); heading.getStyleClass().add("tutorial-heading");
+        Label explanation = new Label(); explanation.setWrapText(true); explanation.getStyleClass().add("tutorial-explanation");
+        TextArea code = new TextArea(); code.setEditable(false); code.setWrapText(false); code.getStyleClass().add("tutorial-code"); code.setPrefRowCount(12);
+        Label note = new Label(); note.setWrapText(true); note.getStyleClass().add("tutorial-note");
+        Label status = new Label("Selecciona una lección."); status.getStyleClass().add("muted");
 
         Button copy = new Button("Copiar ejemplo");
-        Button insert = new Button("Insertar en el script");
-        insert.getStyleClass().add("primary-button");
-        insert.setVisible(insertHandler != null);
-        insert.setManaged(insertHandler != null);
-
-        Region buttonSpacer = new Region();
-        HBox.setHgrow(buttonSpacer, Priority.ALWAYS);
-        HBox actions = new HBox(8, status, buttonSpacer, copy, insert);
-        actions.setAlignment(Pos.CENTER_LEFT);
+        Button insert = new Button("Insertar en el script"); insert.getStyleClass().add("primary-button");
+        insert.setVisible(insertHandler != null); insert.setManaged(insertHandler != null);
+        Region buttonSpacer = new Region(); HBox.setHgrow(buttonSpacer, Priority.ALWAYS);
+        HBox actions = new HBox(8, status, buttonSpacer, copy, insert); actions.setAlignment(Pos.CENTER_LEFT);
 
         VBox content = new VBox(10, heading, explanation, new Separator(), code, note, actions);
-        content.setPadding(new Insets(18));
-        VBox.setVgrow(code, Priority.ALWAYS);
-        ScrollPane contentScroll = new ScrollPane(content);
-        contentScroll.setFitToWidth(true);
-        contentScroll.setFitToHeight(true);
-        contentScroll.getStyleClass().add("tutorial-content-scroll");
+        content.setPadding(new Insets(18)); VBox.setVgrow(code, Priority.ALWAYS);
+        ScrollPane contentScroll = new ScrollPane(content); contentScroll.setFitToWidth(true); contentScroll.setFitToHeight(true); contentScroll.getStyleClass().add("tutorial-content-scroll");
 
-        SplitPane split = new SplitPane(left, contentScroll);
-        split.setDividerPositions(.24);
-        root.setCenter(split);
+        SplitPane split = new SplitPane(left, contentScroll); split.setDividerPositions(.24); root.setCenter(split);
 
         Runnable update = () -> {
             Lesson lesson = navigation.getSelectionModel().getSelectedItem();
             if (lesson == null) {
-                heading.setText("Sin resultados");
-                explanation.setText("No hay lecciones que coincidan con la búsqueda.");
-                code.clear();
-                note.setText("");
-                copy.setDisable(true);
-                insert.setDisable(true);
-                return;
+                heading.setText("Sin resultados"); explanation.setText("No hay lecciones que coincidan con la búsqueda."); code.clear(); note.setText(""); copy.setDisable(true); insert.setDisable(true); return;
             }
-            heading.setText(lesson.title());
-            explanation.setText(lesson.explanation().strip());
-            code.setText(lesson.code().strip());
-            note.setText(lesson.note());
-            boolean noCode = lesson.code().isBlank();
-            copy.setDisable(noCode);
-            insert.setDisable(noCode || insertHandler == null);
+            heading.setText(lesson.title()); explanation.setText(lesson.explanation().strip()); code.setText(lesson.code().strip()); note.setText(lesson.note());
+            boolean noCode = lesson.code().isBlank(); copy.setDisable(noCode); insert.setDisable(noCode || insertHandler == null);
             status.setText("Lección " + (LESSONS.indexOf(lesson) + 1) + " de " + LESSONS.size());
         };
 
         navigation.getSelectionModel().selectedItemProperty().addListener((o, a, b) -> update.run());
         search.textProperty().addListener((o, a, b) -> {
             String q = b == null ? "" : b.trim().toLowerCase(Locale.ROOT);
-            visible.setAll(LESSONS.stream().filter(l -> q.isEmpty()
-                    || l.title().toLowerCase(Locale.ROOT).contains(q)
-                    || l.explanation().toLowerCase(Locale.ROOT).contains(q)
-                    || l.code().toLowerCase(Locale.ROOT).contains(q)).toList());
-            if (!visible.isEmpty()) navigation.getSelectionModel().selectFirst();
-            else update.run();
+            visible.setAll(LESSONS.stream().filter(l -> q.isEmpty() || l.title().toLowerCase(Locale.ROOT).contains(q) || l.explanation().toLowerCase(Locale.ROOT).contains(q) || l.code().toLowerCase(Locale.ROOT).contains(q)).toList());
+            if (!visible.isEmpty()) navigation.getSelectionModel().selectFirst(); else update.run();
         });
 
         copy.setOnAction(e -> {
             Lesson lesson = navigation.getSelectionModel().getSelectedItem();
             if (lesson == null || lesson.code().isBlank()) return;
-            ClipboardContent data = new ClipboardContent();
-            data.putString(lesson.code().strip());
-            Clipboard.getSystemClipboard().setContent(data);
-            status.setText("Ejemplo copiado al portapapeles.");
+            ClipboardContent data = new ClipboardContent(); data.putString(lesson.code().strip()); Clipboard.getSystemClipboard().setContent(data); status.setText("Ejemplo copiado al portapapeles.");
         });
         insert.setOnAction(e -> {
             Lesson lesson = navigation.getSelectionModel().getSelectedItem();
             if (lesson == null || lesson.code().isBlank() || insertHandler == null) return;
-            insertHandler.accept(lesson.code().strip());
-            status.setText("Ejemplo insertado en el script seleccionado.");
+            insertHandler.accept(lesson.code().strip()); status.setText("Ejemplo insertado en el script seleccionado.");
         });
 
         Scene scene = new Scene(root, 1080, 720);
         var css = ScriptTutorialDialog.class.getResource("/com/buttclapdev/twogamerl/studio.css");
         if (css != null) scene.getStylesheets().add(css.toExternalForm());
-        stage.setScene(scene);
-        navigation.getSelectionModel().selectFirst();
-        update.run();
-
+        stage.setScene(scene); navigation.getSelectionModel().selectFirst(); update.run();
         if (owner != null) {
             stage.setX(owner.getX() + Math.max(24, (owner.getWidth() - 1080) / 2));
             stage.setY(owner.getY() + Math.max(24, (owner.getHeight() - 720) / 2));
@@ -408,59 +352,30 @@ final class ScriptTutorialDialog {
     }
 
     private static HBox titleBar(Stage stage) {
-        Label mark = new Label("2G");
-        mark.getStyleClass().add("window-app-mark");
-        Label title = new Label("Tutorial de scripting · 2GameScript");
-        title.getStyleClass().add("window-title");
-        Region spacer = new Region();
-        HBox.setHgrow(spacer, Priority.ALWAYS);
-
+        Label mark = new Label("2G"); mark.getStyleClass().add("window-app-mark");
+        Label title = new Label("Tutorial de scripting · 2GameScript"); title.getStyleClass().add("window-title");
+        Region spacer = new Region(); HBox.setHgrow(spacer, Priority.ALWAYS);
         Button minimize = chromeButton("—", "Minimizar");
         Button maximize = chromeButton("▢", "Maximizar / restaurar");
-        Button close = chromeButton("×", "Cerrar");
-        close.getStyleClass().add("window-close");
-        minimize.setOnAction(e -> stage.setIconified(true));
-        maximize.setOnAction(e -> stage.setMaximized(!stage.isMaximized()));
-        close.setOnAction(e -> stage.close());
+        Button close = chromeButton("×", "Cerrar"); close.getStyleClass().add("window-close");
+        minimize.setOnAction(e -> stage.setIconified(true)); maximize.setOnAction(e -> stage.setMaximized(!stage.isMaximized())); close.setOnAction(e -> stage.close());
         stage.maximizedProperty().addListener((o, a, b) -> maximize.setText(b ? "❐" : "▢"));
-
-        HBox bar = new HBox(9, mark, title, spacer, minimize, maximize, close);
-        bar.setAlignment(Pos.CENTER_LEFT);
-        bar.getStyleClass().add("title-bar");
-
+        HBox bar = new HBox(9, mark, title, spacer, minimize, maximize, close); bar.setAlignment(Pos.CENTER_LEFT); bar.getStyleClass().add("title-bar");
         final double[] drag = new double[2];
-        bar.setOnMousePressed(e -> {
-            if (e.getButton() != MouseButton.PRIMARY || isControl(e.getTarget())) return;
-            drag[0] = e.getSceneX();
-            drag[1] = e.getSceneY();
-        });
-        bar.setOnMouseDragged(e -> {
-            if (e.getButton() != MouseButton.PRIMARY || stage.isMaximized() || isControl(e.getTarget())) return;
-            stage.setX(e.getScreenX() - drag[0]);
-            stage.setY(e.getScreenY() - drag[1]);
-        });
-        bar.setOnMouseClicked(e -> {
-            if (e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 2 && !isControl(e.getTarget())) {
-                stage.setMaximized(!stage.isMaximized());
-            }
-        });
+        bar.setOnMousePressed(e -> { if (e.getButton() != MouseButton.PRIMARY || isControl(e.getTarget())) return; drag[0] = e.getSceneX(); drag[1] = e.getSceneY(); });
+        bar.setOnMouseDragged(e -> { if (e.getButton() != MouseButton.PRIMARY || stage.isMaximized() || isControl(e.getTarget())) return; stage.setX(e.getScreenX() - drag[0]); stage.setY(e.getScreenY() - drag[1]); });
+        bar.setOnMouseClicked(e -> { if (e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 2 && !isControl(e.getTarget())) stage.setMaximized(!stage.isMaximized()); });
         return bar;
     }
 
     private static Button chromeButton(String text, String tooltip) {
-        Button b = new Button(text);
-        b.getStyleClass().add("window-control");
-        b.setTooltip(new Tooltip(tooltip));
-        return b;
+        Button b = new Button(text); b.getStyleClass().add("window-control"); b.setTooltip(new Tooltip(tooltip)); return b;
     }
 
     private static boolean isControl(Object target) {
         if (!(target instanceof javafx.scene.Node node)) return false;
         javafx.scene.Node current = node;
-        while (current != null) {
-            if (current.getStyleClass().contains("window-control")) return true;
-            current = current.getParent();
-        }
+        while (current != null) { if (current.getStyleClass().contains("window-control")) return true; current = current.getParent(); }
         return false;
     }
 }
