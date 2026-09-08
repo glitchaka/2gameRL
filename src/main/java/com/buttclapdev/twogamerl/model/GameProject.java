@@ -9,7 +9,7 @@ import java.io.InputStream;
 import java.util.*;
 
 public final class GameProject {
-    public static final int FORMAT_VERSION = 5;
+    public static final int FORMAT_VERSION = 6;
 
     private String title = "2gameRL";
     private String startLevel = "level-1";
@@ -19,6 +19,7 @@ public final class GameProject {
     private final LinkedHashMap<String, Level> levels = new LinkedHashMap<>();
     private final LinkedHashMap<String, MenuScreen> menus = new LinkedHashMap<>();
     private final LinkedHashMap<String, Asset> assets = new LinkedHashMap<>();
+    private final LinkedHashMap<String, FontAsset> fonts = new LinkedHashMap<>();
     private final List<String> renderLayers = new ArrayList<>();
     private final LinkedHashMap<String, PhysicsLayerDef> physicsLayers = new LinkedHashMap<>();
 
@@ -40,17 +41,8 @@ public final class GameProject {
         loadBundledSampleSprites(p);
 
         Level level = new Level("level-1", "Nivel 1", 24, 16);
-        TileLayer base = level.tileLayers.getFirst();
-        for (int y=0;y<level.height;y++) for (int x=0;x<level.width;x++) base.set(x,y,x==0||y==0||x==level.width-1||y==level.height-1?1:0);
-
-        EntityDef player = new EntityDef("player", "Jugador", 2, 2);
-        player.assetKey = "placeholder-player.png";
-        player.renderLayer = "Personajes";
-        player.physicsLayer = "Player";
-        player.components.add(ComponentDef.preset("GridMovement"));
-        player.components.add(ComponentDef.preset("BoxCollider2D"));
-        player.script = "# Los scripts se ejecutan realmente en el juego.\non start\n  log \"Jugador iniciado\"\nend\n\non doubleClick\n  log \"Doble clic sobre el jugador\"\nend\n";
-        level.entities.add(player);
+        level.backgroundColor = new Color(16,22,32);
+        level.backgroundMode = BackgroundMode.COLOR;
         p.levels.put(level.id, level);
 
         MenuScreen menu = new MenuScreen("main", "2gameRL");
@@ -88,14 +80,14 @@ public final class GameProject {
     public GameProject deepCopy(){
         GameProject c=new GameProject();c.title=title;c.startLevel=startLevel;c.startMenu=startMenu;c.tileSize=tileSize;
         c.renderLayers.clear();c.renderLayers.addAll(renderLayers);c.physicsLayers.clear();physicsLayers.forEach((k,v)->c.physicsLayers.put(k,v.copy()));
-        tiles.forEach((k,v)->c.tiles.put(k,v.copy()));levels.forEach((k,v)->c.levels.put(k,v.copy()));menus.forEach((k,v)->c.menus.put(k,v.copy()));assets.forEach((k,v)->c.assets.put(k,v.copy()));return c;
+        tiles.forEach((k,v)->c.tiles.put(k,v.copy()));levels.forEach((k,v)->c.levels.put(k,v.copy()));menus.forEach((k,v)->c.menus.put(k,v.copy()));assets.forEach((k,v)->c.assets.put(k,v.copy()));fonts.forEach((k,v)->c.fonts.put(k,v.copy()));return c;
     }
 
     public String getTitle(){return title;} public void setTitle(String v){title=v==null||v.isBlank()?"2gameRL":v.trim();}
     public String getStartLevel(){return startLevel;} public void setStartLevel(String v){startLevel=v;}
     public String getStartMenu(){return startMenu;} public void setStartMenu(String v){startMenu=v;}
     public int getTileSize(){return tileSize;} public void setTileSize(int v){tileSize=Math.max(8,Math.min(128,v));}
-    public Map<Integer,TileDef> getTiles(){return tiles;} public Map<String,Level> getLevels(){return levels;} public Map<String,MenuScreen> getMenus(){return menus;} public Map<String,Asset> getAssets(){return assets;}
+    public Map<Integer,TileDef> getTiles(){return tiles;} public Map<String,Level> getLevels(){return levels;} public Map<String,MenuScreen> getMenus(){return menus;} public Map<String,Asset> getAssets(){return assets;} public Map<String,FontAsset> getFonts(){return fonts;}
     public List<String> getRenderLayers(){return renderLayers;} public Map<String,PhysicsLayerDef> getPhysicsLayers(){return physicsLayers;}
     public List<String> getDrawableAssetKeys(){return assets.values().stream().filter(a->!a.sourceOnly||a.isRegion()).map(a->a.key).toList();}
     public int nextTileId(){return tiles.keySet().stream().mapToInt(Integer::intValue).max().orElse(-1)+1;}
@@ -132,23 +124,36 @@ public final class GameProject {
         @Override public String toString(){return (sourceOnly&&!isRegion()?"[Hoja] ":isRegion()?"[Región] ":"")+(sourceName==null?key:sourceName);}
     }
 
+    public static final class FontAsset {
+        public final String key; public String sourceName; public byte[] data;
+        public FontAsset(String key,String sourceName,byte[] data){this.key=key;this.sourceName=sourceName;this.data=data;}
+        public FontAsset copy(){return new FontAsset(key,sourceName,data==null?null:data.clone());}
+        @Override public String toString(){return sourceName==null?key:sourceName;}
+    }
+
+    public enum BackgroundMode { COLOR, STRETCH, COVER, CONTAIN, TILE }
+
     public static final class TileLayer {
         public final String id; public String name; public boolean visible=true,locked=false,collision=true; public String renderLayer="Suelo",physicsLayer="World"; public int order;
+        public String script="# Script de capa\n"; public final LinkedHashMap<String,String> variables=new LinkedHashMap<>();
         private int width,height; private int[]cells;
-        public TileLayer(String id,String name,int width,int height,int order){this.id=id;this.name=name;this.width=width;this.height=height;this.order=order;this.cells=new int[width*height];}
-        public int get(int x,int y){return cells[y*width+x];} public void set(int x,int y,int v){if(!locked&&x>=0&&y>=0&&x<width&&y<height)cells[y*width+x]=v;}
+        public TileLayer(String id,String name,int width,int height,int order){this.id=id;this.name=name;this.width=width;this.height=height;this.order=order;this.cells=new int[width*height];Arrays.fill(this.cells,-1);}
+        public int get(int x,int y){if(x<0||y<0||x>=width||y>=height)return-1;return cells[y*width+x];} public void set(int x,int y,int v){if(!locked&&x>=0&&y>=0&&x<width&&y<height)cells[y*width+x]=v;}
         public int[]cells(){return cells;} public void replaceCells(int[]v){if(v!=null&&v.length==width*height)cells=v.clone();}
-        public void resize(int nw,int nh){int[]next=new int[nw*nh];int cw=Math.min(width,nw),ch=Math.min(height,nh);for(int y=0;y<ch;y++)System.arraycopy(cells,y*width,next,y*nw,cw);width=nw;height=nh;cells=next;}
-        public TileLayer copy(){TileLayer c=new TileLayer(id,name,width,height,order);c.visible=visible;c.locked=locked;c.collision=collision;c.renderLayer=renderLayer;c.physicsLayer=physicsLayer;c.cells=cells.clone();return c;} @Override public String toString(){return name;}
+        public void resize(int nw,int nh){int[]next=new int[nw*nh];Arrays.fill(next,-1);int cw=Math.min(width,nw),ch=Math.min(height,nh);for(int y=0;y<ch;y++)System.arraycopy(cells,y*width,next,y*nw,cw);width=nw;height=nh;cells=next;}
+        public TileLayer copy(){TileLayer c=new TileLayer(id,name,width,height,order);c.visible=visible;c.locked=locked;c.collision=collision;c.renderLayer=renderLayer;c.physicsLayer=physicsLayer;c.cells=cells.clone();c.script=script;c.variables.putAll(variables);return c;} @Override public String toString(){return name;}
     }
 
     public static final class Level {
         public final String id; public String name; public int width,height; public int spawnX,spawnY; public final List<TileLayer> tileLayers=new ArrayList<>(); public final List<EntityDef>entities=new ArrayList<>();
+        public String backgroundAssetKey=""; public Color backgroundColor=new Color(16,22,32); public BackgroundMode backgroundMode=BackgroundMode.COLOR;
+        public boolean boundaryLeft=false,boundaryRight=false,boundaryTop=false,boundaryBottom=false;
+        public String script="# Script de escena\n"; public final LinkedHashMap<String,String> variables=new LinkedHashMap<>();
         public Level(String id,String name,int width,int height){this.id=id;this.name=name;this.width=Math.max(4,width);this.height=Math.max(4,height);tileLayers.add(new TileLayer("base","Suelo",this.width,this.height,0));}
         public TileLayer baseLayer(){if(tileLayers.isEmpty())tileLayers.add(new TileLayer("base","Suelo",width,height,0));return tileLayers.getFirst();}
         public int get(int x,int y){return baseLayer().get(x,y);} public void set(int x,int y,int v){baseLayer().set(x,y,v);} public int[]cells(){return baseLayer().cells();} public void replaceCells(int[]v){baseLayer().replaceCells(v);}
         public void resize(int nw,int nh){nw=Math.max(4,Math.min(256,nw));nh=Math.max(4,Math.min(256,nh));for(TileLayer l:tileLayers)l.resize(nw,nh);width=nw;height=nh;for(EntityDef e:entities){e.x=Math.max(0,Math.min(width-1,e.x));e.y=Math.max(0,Math.min(height-1,e.y));}}
-        public EntityDef entity(String id){return entities.stream().filter(e->e.id.equals(id)).findFirst().orElse(null);} public Level copy(){Level c=new Level(id,name,width,height);c.tileLayers.clear();tileLayers.forEach(l->c.tileLayers.add(l.copy()));entities.forEach(e->c.entities.add(e.copy()));return c;} @Override public String toString(){return name;}
+        public EntityDef entity(String id){return entities.stream().filter(e->e.id.equals(id)).findFirst().orElse(null);} public Level copy(){Level c=new Level(id,name,width,height);c.tileLayers.clear();tileLayers.forEach(l->c.tileLayers.add(l.copy()));entities.forEach(e->c.entities.add(e.copy()));c.backgroundAssetKey=backgroundAssetKey;c.backgroundColor=backgroundColor;c.backgroundMode=backgroundMode;c.boundaryLeft=boundaryLeft;c.boundaryRight=boundaryRight;c.boundaryTop=boundaryTop;c.boundaryBottom=boundaryBottom;c.script=script;c.variables.putAll(variables);return c;} @Override public String toString(){return name;}
     }
 
     public static final class EntityDef {
@@ -176,6 +181,7 @@ public final class GameProject {
                 case"Trigger"->p.put("once","false");
                 case"Health"->{p.put("max","100");p.put("current","100");}
                 case"DamageOnContact"->p.put("damage","10");
+                case"Clickable"->{}
             }
             return new ComponentDef(type,p);
         }
@@ -202,17 +208,17 @@ public final class GameProject {
     public enum MenuHoverEffect{NONE,SCALE,GLOW,LIFT}
 
     public static final class MenuButton {
-        public String text; public int x,y,width,height; public MenuAction action; public String target,assetKey="",hoverAssetKey=""; public int fontSize=16;
+        public String text; public int x,y,width,height; public MenuAction action; public String target,assetKey="",hoverAssetKey="",fontKey=""; public int fontSize=16;
         public Color textColor=Color.WHITE,backgroundColor=new Color(31,115,170); public MenuAnimation animation=MenuAnimation.NONE; public MenuHoverEffect hoverEffect=MenuHoverEffect.SCALE; public double animationSpeed=1;
         public MenuButton(String text,int x,int y,int width,int height,MenuAction action,String target){this.text=text;this.x=x;this.y=y;this.width=width;this.height=height;this.action=action;this.target=target==null?"":target;}
-        public MenuButton copy(){MenuButton c=new MenuButton(text,x,y,width,height,action,target);c.assetKey=assetKey;c.hoverAssetKey=hoverAssetKey;c.fontSize=fontSize;c.textColor=textColor;c.backgroundColor=backgroundColor;c.animation=animation;c.hoverEffect=hoverEffect;c.animationSpeed=animationSpeed;return c;}
+        public MenuButton copy(){MenuButton c=new MenuButton(text,x,y,width,height,action,target);c.assetKey=assetKey;c.hoverAssetKey=hoverAssetKey;c.fontKey=fontKey;c.fontSize=fontSize;c.textColor=textColor;c.backgroundColor=backgroundColor;c.animation=animation;c.hoverEffect=hoverEffect;c.animationSpeed=animationSpeed;return c;}
     }
 
     public static final class MenuScreen {
-        public final String id; public String title; public Color background=new Color(19,24,34),titleColor=Color.WHITE; public String backgroundAssetKey="",titleAssetKey="";
+        public final String id; public String title; public Color background=new Color(19,24,34),titleColor=Color.WHITE; public String backgroundAssetKey="",titleAssetKey="",titleFontKey="";
         public int canvasWidth=640,canvasHeight=480,titleX=30,titleY=30,titleWidth=360,titleHeight=80,titleFontSize=34; public MenuAnimation titleAnimation=MenuAnimation.NONE; public double titleAnimationSpeed=1; public final List<MenuButton>buttons=new ArrayList<>();
         public MenuScreen(String id,String title){this.id=id;this.title=title;}
-        public MenuScreen copy(){MenuScreen c=new MenuScreen(id,title);c.background=background;c.titleColor=titleColor;c.backgroundAssetKey=backgroundAssetKey;c.titleAssetKey=titleAssetKey;c.canvasWidth=canvasWidth;c.canvasHeight=canvasHeight;c.titleX=titleX;c.titleY=titleY;c.titleWidth=titleWidth;c.titleHeight=titleHeight;c.titleFontSize=titleFontSize;c.titleAnimation=titleAnimation;c.titleAnimationSpeed=titleAnimationSpeed;buttons.forEach(b->c.buttons.add(b.copy()));return c;}
+        public MenuScreen copy(){MenuScreen c=new MenuScreen(id,title);c.background=background;c.titleColor=titleColor;c.backgroundAssetKey=backgroundAssetKey;c.titleAssetKey=titleAssetKey;c.titleFontKey=titleFontKey;c.canvasWidth=canvasWidth;c.canvasHeight=canvasHeight;c.titleX=titleX;c.titleY=titleY;c.titleWidth=titleWidth;c.titleHeight=titleHeight;c.titleFontSize=titleFontSize;c.titleAnimation=titleAnimation;c.titleAnimationSpeed=titleAnimationSpeed;buttons.forEach(b->c.buttons.add(b.copy()));return c;}
         @Override public String toString(){return title;}
     }
 }
