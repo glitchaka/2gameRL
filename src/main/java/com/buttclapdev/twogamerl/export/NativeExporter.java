@@ -21,9 +21,9 @@ public final class NativeExporter {
         try {
             Files.createDirectories(destination);
             Path jpackage = locateJpackage();
-            if (jpackage == null) return new Result(false, null, null, "No se encontró jpackage. Usa el editor empaquetado completo o un JDK 21 con JAVA_HOME configurado.");
+            if (jpackage == null) return new Result(false, null, null, "No se encontró jpackage. Usa 2gameRL Studio para Windows o un JDK 21 con JAVA_HOME configurado.");
             Path sourceInput = locateAppInput();
-            if (sourceInput == null) return new Result(false, null, null, "No se encontró el paquete interno del runtime. Ejecuta scripts\\build-editor.bat una vez y vuelve a exportar.");
+            if (sourceInput == null) return new Result(false, null, null, "No se encontró el paquete interno del runtime del juego.");
 
             String name = sanitizeName(project.getTitle());
             Path temp = Files.createTempDirectory("2gamerl-export-");
@@ -45,7 +45,7 @@ public final class NativeExporter {
             command.add("--main-class"); command.add("com.buttclapdev.twogamerl.runtime.GameLauncher");
             command.add("--app-version"); command.add("1.0.0");
             command.add("--description"); command.add("Juego creado con 2gameRL Studio");
-            out.accept("Exportando aplicación nativa…");
+            out.accept("Exportando aplicación nativa con " + jpackage + "…");
             int code = run(command, out);
             if (code != 0 || !Files.exists(appPath)) return new Result(false, null, null, "jpackage terminó con código " + code + ". El registro de exportación contiene el detalle.");
 
@@ -63,16 +63,45 @@ public final class NativeExporter {
     }
 
     private static Path locateJpackage() {
-        boolean win = System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win"); String exe = win ? "jpackage.exe" : "jpackage";
+        boolean win = System.getProperty("os.name", "").toLowerCase(Locale.ROOT).contains("win");
+        String exe = win ? "jpackage.exe" : "jpackage";
         List<Path> candidates = new ArrayList<>();
-        candidates.add(Path.of(System.getProperty("java.home", ""), "bin", exe));
-        String javaHome = System.getenv("JAVA_HOME"); if (javaHome != null && !javaHome.isBlank()) candidates.add(Path.of(javaHome, "bin", exe));
-        for (Path p : candidates) if (Files.isRegularFile(p)) return p;
+
+        String explicitToolchain = System.getProperty("twogamerl.toolchain", "");
+        if (!explicitToolchain.isBlank()) candidates.add(Path.of(explicitToolchain, "bin", exe));
+
+        Path javaHome = safePath(System.getProperty("java.home", ""));
+        if (javaHome != null) {
+            candidates.add(javaHome.resolve("bin").resolve(exe));
+            Path appRoot = javaHome.getParent();
+            if (appRoot != null) candidates.add(appRoot.resolve("toolchain").resolve("bin").resolve(exe));
+        }
+
+        try {
+            Path code = Path.of(NativeExporter.class.getProtectionDomain().getCodeSource().getLocation().toURI()).toAbsolutePath();
+            if (Files.isRegularFile(code)) {
+                Path appDir = code.getParent();
+                if (appDir != null && appDir.getParent() != null) {
+                    candidates.add(appDir.getParent().resolve("toolchain").resolve("bin").resolve(exe));
+                }
+            }
+        } catch (Exception ignored) {}
+
+        String javaHomeEnv = System.getenv("JAVA_HOME");
+        if (javaHomeEnv != null && !javaHomeEnv.isBlank()) candidates.add(Path.of(javaHomeEnv, "bin", exe));
+
+        for (Path p : candidates) if (p != null && Files.isRegularFile(p)) return p.toAbsolutePath().normalize();
         try {
             Process which = new ProcessBuilder(win ? "where" : "which", "jpackage").redirectErrorStream(true).start();
-            String line = new BufferedReader(new InputStreamReader(which.getInputStream())).readLine(); if (line != null && Files.isRegularFile(Path.of(line.trim()))) return Path.of(line.trim());
+            String line = new BufferedReader(new InputStreamReader(which.getInputStream())).readLine();
+            if (line != null && Files.isRegularFile(Path.of(line.trim()))) return Path.of(line.trim()).toAbsolutePath().normalize();
         } catch (Exception ignored) {}
         return null;
+    }
+
+    private static Path safePath(String value) {
+        try { return value == null || value.isBlank() ? null : Path.of(value).toAbsolutePath().normalize(); }
+        catch (Exception ignored) { return null; }
     }
 
     private static Path locateAppInput() {
@@ -94,7 +123,7 @@ public final class NativeExporter {
     }
     private static String sanitizeName(String title) { String n = title == null ? "2gameRL" : title.trim().replaceAll("[\\\\/:*?\"<>|]", "-"); return n.isBlank() ? "2gameRL" : n; }
     private static void copyQuiet(Path from, Path to) { try { Files.copy(from,to,StandardCopyOption.REPLACE_EXISTING); } catch (IOException e) { throw new UncheckedIOException(e); } }
-    private static void deleteTree(Path root) throws IOException { if (root==null||!Files.exists(root))return; try(var walk=Files.walk(root)){for(Path p:walk.sorted(Comparator.reverseOrder()).toList())Files.deleteIfExists(p);} }
+    private static void deleteTree(Path root) throws IOException { if(root==null||!Files.exists(root))return; try(var walk=Files.walk(root)){for(Path p:walk.sorted(Comparator.reverseOrder()).toList())Files.deleteIfExists(p);} }
     private static void zipDirectory(Path root, Path zip) throws IOException {
         try(ZipOutputStream out=new ZipOutputStream(Files.newOutputStream(zip));var walk=Files.walk(root)){
             for(Path p:walk.filter(Files::isRegularFile).toList()){String name=root.getFileName()+"/"+root.relativize(p).toString().replace('\\','/');out.putNextEntry(new ZipEntry(name));Files.copy(p,out);out.closeEntry();}

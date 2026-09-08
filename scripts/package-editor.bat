@@ -1,18 +1,27 @@
 @echo off
-setlocal
+setlocal EnableExtensions
 cd /d "%~dp0.."
 call "%~dp0build-editor.bat"
 if errorlevel 1 exit /b %errorlevel%
-if "%JAVA_HOME%"=="" (echo ERROR: JAVA_HOME debe apuntar a un JDK 21 completo para crear el editor autocontenido.& exit /b 1)
+if "%JAVA_HOME%"=="" (echo ERROR: JAVA_HOME debe apuntar a un JDK 21 completo.& exit /b 1)
 if not exist "%JAVA_HOME%\bin\jpackage.exe" (echo ERROR: %JAVA_HOME% no contiene jpackage.exe.& exit /b 1)
+if not exist "%JAVA_HOME%\bin\java.exe" (echo ERROR: %JAVA_HOME% no contiene java.exe.& exit /b 1)
 for /f "usebackq delims=" %%v in (`mvn -q -DforceStdout help:evaluate -Dexpression=project.version`) do set "APP_VERSION=%%v"
 if "%APP_VERSION%"=="" (echo ERROR: No se pudo obtener la version desde pom.xml.& exit /b 1)
-if exist "build\2gameRL Studio" rmdir /s /q "build\2gameRL Studio"
+set "STUDIO_DIR=build\2gameRL Studio"
+if exist "%STUDIO_DIR%" rmdir /s /q "%STUDIO_DIR%"
 if not exist build mkdir build
-echo [2gameRL] Creando 2gameRL Studio %APP_VERSION% autocontenido...
-"%JAVA_HOME%\bin\jpackage.exe" --type app-image --input "target\app-input" --dest "build" --name "2gameRL Studio" --main-jar "2gameRL-Studio.jar" --main-class "com.buttclapdev.twogamerl.studio.DesktopLauncher" --runtime-image "%JAVA_HOME%" --app-version "%APP_VERSION%" --description "Editor visual 2gameRL"
+echo [2gameRL] Creando 2gameRL Studio %APP_VERSION% para Windows...
+"%JAVA_HOME%\bin\jpackage.exe" --type app-image --input "target\app-input" --dest "build" --name "2gameRL Studio" --main-jar "2gameRL-Studio.jar" --main-class "com.buttclapdev.twogamerl.studio.DesktopLauncher" --app-version "%APP_VERSION%" --description "Editor visual 2gameRL"
 if errorlevel 1 exit /b %errorlevel%
+echo [2gameRL] Integrando toolchain JDK para exportar juegos desde el Studio...
+if exist "%STUDIO_DIR%\toolchain" rmdir /s /q "%STUDIO_DIR%\toolchain"
+robocopy "%JAVA_HOME%" "%STUDIO_DIR%\toolchain" /E /NFL /NDL /NJH /NJS /NC /NS >nul
+if errorlevel 8 (echo ERROR: No se pudo integrar el JDK de exportacion.& exit /b %errorlevel%)
+if not exist "%STUDIO_DIR%\toolchain\bin\jpackage.exe" (echo ERROR: El paquete final no contiene toolchain\bin\jpackage.exe.& exit /b 1)
+if not exist "%STUDIO_DIR%\2gameRL Studio.exe" (echo ERROR: No se genero 2gameRL Studio.exe.& exit /b 1)
 echo.
-echo LISTO: build\2gameRL Studio\2gameRL Studio.exe
-echo El JDK completo queda integrado para que Exportar funcione desde el propio editor.
+echo LISTO: %STUDIO_DIR%\2gameRL Studio.exe
+echo El runtime del Studio y el JDK usado para exportar juegos estan separados.
 endlocal
+exit /b 0

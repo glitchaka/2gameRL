@@ -9,71 +9,8 @@ permissions:
   contents: write
 
 jobs:
-  test-linux:
-    name: Test runtime and exporter
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '21'
-          cache: maven
-      - name: Install virtual display
-        run: sudo apt-get update && sudo apt-get install -y xvfb
-      - name: Compile and run unit tests
-        run: mvn -B -ntp clean test package
-      - name: Create smoke project
-        run: |
-          mkdir -p target/smoke
-          java -cp "target/test-classes:target/app-input/*" com.buttclapdev.twogamerl.SmokeProjectCreator target/smoke/default.2grl
-      - name: Launch Studio smoke test
-        shell: bash
-        run: |
-          set +e
-          timeout 8s xvfb-run -a java -cp "target/app-input/*" com.buttclapdev.twogamerl.studio.DesktopLauncher > target/studio-smoke.log 2>&1
-          code=$?
-          set -e
-          cat target/studio-smoke.log
-          if [ "$code" -ne 124 ]; then
-            echo "Studio exited unexpectedly with code $code"
-            exit "$code"
-          fi
-      - name: Runtime script startup smoke test
-        shell: bash
-        run: |
-          set +e
-          timeout 8s xvfb-run -a java -Dtwogamerl.project=target/smoke/default.2grl -cp "target/app-input/*" com.buttclapdev.twogamerl.runtime.GameLauncher > target/runtime-smoke.log 2>&1
-          code=$?
-          set -e
-          cat target/runtime-smoke.log
-          if [ "$code" -ne 124 ]; then
-            echo "Runtime exited unexpectedly with code $code"
-            exit "$code"
-          fi
-          grep -F "[Jugador] Jugador iniciado" target/runtime-smoke.log
-      - name: Export app-image and portable ZIP
-        run: |
-          java -cp "target/app-input/*" com.buttclapdev.twogamerl.export.ExportCli target/smoke/default.2grl target/export-smoke
-          test -f "target/export-smoke/2gameRL-Smoke-portable.zip"
-          test -x "target/export-smoke/2gameRL-Smoke/bin/2gameRL-Smoke"
-      - name: Launch exported game smoke test
-        shell: bash
-        run: |
-          set +e
-          timeout 8s xvfb-run -a "target/export-smoke/2gameRL-Smoke/bin/2gameRL-Smoke" > target/exported-runtime-smoke.log 2>&1
-          code=$?
-          set -e
-          cat target/exported-runtime-smoke.log
-          if [ "$code" -ne 124 ]; then
-            echo "Exported game exited unexpectedly with code $code"
-            exit "$code"
-          fi
-          grep -F "[Jugador] Jugador iniciado" target/exported-runtime-smoke.log
-
-  package-windows:
-    name: Package Windows Studio
-    needs: test-linux
+  windows-e2e:
+    name: Windows end-to-end
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -82,26 +19,92 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      - name: Package application
+
+      - name: Compile and run unit tests
+        shell: pwsh
+        run: mvn -B -ntp clean test package
+
+      - name: Create Windows smoke project
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path target\smoke | Out-Null
+          & "$env:JAVA_HOME\bin\java.exe" -cp "target\test-classes;target\app-input\*" com.buttclapdev.twogamerl.SmokeProjectCreator target\smoke\default.2grl
+          if ($LASTEXITCODE -ne 0) { throw "No se pudo crear el proyecto smoke." }
+
+      - name: Runtime and script smoke test on Windows
+        shell: pwsh
+        run: |
+          $stdout = "target\runtime-smoke.log"
+          $stderr = "target\runtime-smoke.err.log"
+          $p = Start-Process -FilePath "$env:JAVA_HOME\bin\java.exe" -ArgumentList '-Dtwogamerl.project=target\smoke\default.2grl','-cp','target\app-input\*','com.buttclapdev.twogamerl.runtime.GameLauncher' -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          Start-Sleep -Seconds 7
+          $p.Refresh()
+          if ($p.HasExited) {
+            Get-Content $stdout -ErrorAction SilentlyContinue
+            Get-Content $stderr -ErrorAction SilentlyContinue
+            throw "El runtime Windows termino antes de tiempo con codigo $($p.ExitCode)."
+          }
+          Stop-Process -Id $p.Id -Force
+          $log = (Get-Content $stdout -Raw -ErrorAction SilentlyContinue) + (Get-Content $stderr -Raw -ErrorAction SilentlyContinue)
+          Write-Host $log
+          if ($log -notmatch '\[Jugador\] Jugador iniciado') { throw "El script start del jugador no se ejecuto en Windows." }
+
+      - name: Package Windows Studio
         shell: cmd
         run: scripts\package-editor.bat
-      - name: Read version and archive
+
+      - name: Verify packaged Windows toolchain
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "build\2gameRL Studio\2gameRL Studio.exe")) { throw "Falta 2gameRL Studio.exe" }
+          if (-not (Test-Path "build\2gameRL Studio\toolchain\bin\jpackage.exe")) { throw "El Studio no contiene jpackage.exe" }
+          if (-not (Test-Path "build\2gameRL Studio\toolchain\jmods")) { throw "El Studio no contiene los jmods requeridos por jpackage" }
+
+      - name: Launch packaged 2gameRL Studio.exe
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "build\2gameRL Studio\2gameRL Studio.exe" -PassThru
+          Start-Sleep -Seconds 8
+          $p.Refresh()
+          if ($p.HasExited) { throw "2gameRL Studio.exe termino antes de tiempo con codigo $($p.ExitCode)." }
+          Stop-Process -Id $p.Id -Force
+
+      - name: Export Windows game using the Studio bundled toolchain
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path build\export-smoke | Out-Null
+          & "build\2gameRL Studio\toolchain\bin\java.exe" -Dtwogamerl.toolchain="build\2gameRL Studio\toolchain" -cp "build\2gameRL Studio\app\*" com.buttclapdev.twogamerl.export.ExportCli target\smoke\default.2grl build\export-smoke
+          if ($LASTEXITCODE -ne 0) { throw "La exportacion desde el Studio empaquetado fallo." }
+          if (-not (Test-Path "build\export-smoke\2gameRL-Smoke\2gameRL-Smoke.exe")) { throw "No se genero el ejecutable del juego." }
+          if (-not (Test-Path "build\export-smoke\2gameRL-Smoke-portable.zip")) { throw "No se genero el ZIP portable del juego." }
+
+      - name: Launch exported Windows game executable
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "build\export-smoke\2gameRL-Smoke\2gameRL-Smoke.exe" -PassThru
+          Start-Sleep -Seconds 8
+          $p.Refresh()
+          if ($p.HasExited) { throw "El juego Windows exportado termino antes de tiempo con codigo $($p.ExitCode)." }
+          Stop-Process -Id $p.Id -Force
+
+      - name: Read version and archive validated Windows Studio
         id: version
         shell: pwsh
         run: |
           [xml]$pom = Get-Content pom.xml
           $version = $pom.project.version
           "version=$version" >> $env:GITHUB_OUTPUT
-          Compress-Archive -Path "build\2gameRL Studio\*" -DestinationPath "build\2gameRL-Studio-Windows-v$version.zip" -Force
+          Compress-Archive -Path "build\2gameRL Studio" -DestinationPath "build\2gameRL-Studio-Windows-v$version.zip" -Force
+
       - uses: actions/upload-artifact@v4
         with:
           name: windows-studio
           path: build/2gameRL-Studio-Windows-v${{ steps.version.outputs.version }}.zip
 
   release:
-    name: Publish GitHub Release
+    name: Publish validated Windows Release
     if: github.event_name == 'push'
-    needs: [test-linux, package-windows]
+    needs: [windows-e2e]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -111,7 +114,7 @@ jobs:
         with:
           name: windows-studio
           path: release-assets
-      - name: Create immutable release for this change
+      - name: Create immutable version release
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -121,13 +124,12 @@ jobs:
           print(ET.parse('pom.xml').getroot().findtext('{http://maven.apache.org/POM/4.0.0}version'))
           PY
           )
-          SHORT_SHA="${GITHUB_SHA:0:8}"
-          TAG="v${VERSION}-${SHORT_SHA}"
-          if gh release view "$TAG" >/dev/null 2>&1; then
-            echo "Release $TAG already exists; nothing to overwrite."
-            exit 0
+          TAG="v${VERSION}"
+          if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null || gh release view "$TAG" >/dev/null 2>&1; then
+            echo "ERROR: $TAG ya existe. Incrementa la version antes de publicar otro cambio."
+            exit 1
           fi
           gh release create "$TAG" release-assets/* \
             --target "$GITHUB_SHA" \
-            --title "2gameRL Studio ${VERSION} · ${SHORT_SHA}" \
+            --title "2gameRL Studio ${VERSION} - Windows" \
             --generate-notes
