@@ -10,10 +10,13 @@ import javafx.application.Platform;
 import javafx.concurrent.Task;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Cursor;
 import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.image.Image;
+import javafx.scene.input.MouseButton;
+import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.*;
 import javafx.stage.*;
 
@@ -23,6 +26,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public final class StudioApp extends Application {
+    private static final double RESIZE_MARGIN = 6;
+
     private Stage stage;
     private GameProject project = GameProject.createDefault();
     private Path currentFile;
@@ -30,12 +35,25 @@ public final class StudioApp extends Application {
     private final BorderPane root = new BorderPane();
     private final StackPane workspace = new StackPane();
     private final Label status = new Label("Listo");
+    private final Label windowTitle = new Label();
     private final Map<String, Image> imageCache = new HashMap<>();
     private ToggleButton sceneWorkspaceButton;
 
+    private double windowDragX;
+    private double windowDragY;
+    private boolean resizing;
+    private Cursor resizeCursor = Cursor.DEFAULT;
+    private double resizeScreenX;
+    private double resizeScreenY;
+    private double resizeStageX;
+    private double resizeStageY;
+    private double resizeStageWidth;
+    private double resizeStageHeight;
+
     @Override public void start(Stage primaryStage) {
         stage = primaryStage;
-        root.getStyleClass().add("studio-root");
+        stage.initStyle(StageStyle.UNDECORATED);
+        root.getStyleClass().addAll("studio-root", "window-frame");
         root.setTop(buildTop());
         root.setCenter(workspace);
         status.getStyleClass().add("status-bar");
@@ -43,9 +61,10 @@ public final class StudioApp extends Application {
         status.setPadding(new Insets(5, 12, 6, 12));
         root.setBottom(status);
         showSceneWorkspace();
+
         Scene scene = new Scene(root, 1480, 900);
-        var css = getClass().getResource("/com/buttclapdev/twogamerl/studio.css");
-        if (css != null) scene.getStylesheets().add(css.toExternalForm());
+        applyCss(scene);
+        installWindowResize(scene);
         stage.setScene(scene);
         stage.setMinWidth(1120);
         stage.setMinHeight(720);
@@ -74,7 +93,7 @@ public final class StudioApp extends Application {
         MenuItem save = item("Guardar", "Ctrl+S", e -> save(false));
         MenuItem saveAs = item("Guardar como…", "Ctrl+Shift+S", e -> save(true));
         MenuItem export = item("Exportar juego…", "Ctrl+E", e -> exportGame());
-        MenuItem exit = item("Salir", "", e -> stage.fireEvent(new WindowEvent(stage, WindowEvent.WINDOW_CLOSE_REQUEST)));
+        MenuItem exit = item("Salir", "", e -> requestClose());
         file.getItems().addAll(n, open, new SeparatorMenuItem(), save, saveAs, new SeparatorMenuItem(), export, new SeparatorMenuItem(), exit);
         Menu help = new Menu("Ayuda");
         MenuItem quick = new MenuItem("Guía de 60 segundos"); quick.setOnAction(e -> quickGuide()); help.getItems().add(quick);
@@ -95,7 +114,138 @@ public final class StudioApp extends Application {
         Region spacer = new Region(); HBox.setHgrow(spacer, Priority.ALWAYS);
         HBox toolbar = new HBox(7, bNew, bOpen, bSave, new Separator(), sceneWorkspaceButton, menus, graphics, spacer, play, exportB);
         toolbar.setAlignment(Pos.CENTER_LEFT); toolbar.setPadding(new Insets(8,12,9,12)); toolbar.getStyleClass().add("main-toolbar");
-        return new VBox(menuBar, toolbar);
+        return new VBox(buildTitleBar(), menuBar, toolbar);
+    }
+
+    private Node buildTitleBar() {
+        Label mark = new Label("2G");
+        mark.getStyleClass().add("window-app-mark");
+        windowTitle.getStyleClass().add("window-title");
+        Region spacer = new Region();
+        HBox.setHgrow(spacer, Priority.ALWAYS);
+
+        Button minimize = chromeButton("—", "Minimizar");
+        Button maximize = chromeButton("▢", "Maximizar / restaurar");
+        Button close = chromeButton("×", "Cerrar");
+        close.getStyleClass().add("window-close");
+        minimize.setOnAction(e -> stage.setIconified(true));
+        maximize.setOnAction(e -> stage.setMaximized(!stage.isMaximized()));
+        close.setOnAction(e -> requestClose());
+        stage.maximizedProperty().addListener((o, a, b) -> maximize.setText(b ? "❐" : "▢"));
+
+        HBox titleBar = new HBox(9, mark, windowTitle, spacer, minimize, maximize, close);
+        titleBar.setAlignment(Pos.CENTER_LEFT);
+        titleBar.getStyleClass().add("title-bar");
+
+        titleBar.setOnMousePressed(e -> {
+            if (e.getButton() != MouseButton.PRIMARY || isWindowControl(e.getTarget())) return;
+            windowDragX = e.getSceneX();
+            windowDragY = e.getSceneY();
+        });
+        titleBar.setOnMouseDragged(e -> {
+            if (e.getButton() != MouseButton.PRIMARY || stage.isMaximized() || isWindowControl(e.getTarget())) return;
+            stage.setX(e.getScreenX() - windowDragX);
+            stage.setY(e.getScreenY() - windowDragY);
+        });
+        titleBar.setOnMouseClicked(e -> {
+            if (e.getButton() == MouseButton.PRIMARY && e.getClickCount() == 2 && !isWindowControl(e.getTarget())) {
+                stage.setMaximized(!stage.isMaximized());
+            }
+        });
+        return titleBar;
+    }
+
+    private Button chromeButton(String text, String tooltip) {
+        Button b = new Button(text);
+        b.getStyleClass().add("window-control");
+        b.setTooltip(new Tooltip(tooltip));
+        return b;
+    }
+
+    private boolean isWindowControl(Object target) {
+        if (!(target instanceof Node node)) return false;
+        Node current = node;
+        while (current != null) {
+            if (current.getStyleClass().contains("window-control")) return true;
+            current = current.getParent();
+        }
+        return false;
+    }
+
+    private void requestClose() {
+        stage.fireEvent(new WindowEvent(stage, WindowEvent.WINDOW_CLOSE_REQUEST));
+    }
+
+    private void installWindowResize(Scene scene) {
+        scene.addEventFilter(MouseEvent.MOUSE_MOVED, e -> {
+            if (resizing || stage.isMaximized()) return;
+            Cursor cursor = edgeCursor(e.getSceneX(), e.getSceneY(), scene.getWidth(), scene.getHeight());
+            scene.setCursor(cursor);
+        });
+        scene.addEventFilter(MouseEvent.MOUSE_PRESSED, e -> {
+            if (e.getButton() != MouseButton.PRIMARY || stage.isMaximized()) return;
+            Cursor cursor = edgeCursor(e.getSceneX(), e.getSceneY(), scene.getWidth(), scene.getHeight());
+            if (cursor == Cursor.DEFAULT) return;
+            resizing = true;
+            resizeCursor = cursor;
+            resizeScreenX = e.getScreenX();
+            resizeScreenY = e.getScreenY();
+            resizeStageX = stage.getX();
+            resizeStageY = stage.getY();
+            resizeStageWidth = stage.getWidth();
+            resizeStageHeight = stage.getHeight();
+            e.consume();
+        });
+        scene.addEventFilter(MouseEvent.MOUSE_DRAGGED, e -> {
+            if (!resizing) return;
+            resizeWindow(e.getScreenX() - resizeScreenX, e.getScreenY() - resizeScreenY);
+            e.consume();
+        });
+        scene.addEventFilter(MouseEvent.MOUSE_RELEASED, e -> {
+            if (!resizing) return;
+            resizing = false;
+            resizeCursor = Cursor.DEFAULT;
+            scene.setCursor(edgeCursor(e.getSceneX(), e.getSceneY(), scene.getWidth(), scene.getHeight()));
+            e.consume();
+        });
+    }
+
+    private Cursor edgeCursor(double x, double y, double width, double height) {
+        boolean left = x <= RESIZE_MARGIN;
+        boolean right = x >= width - RESIZE_MARGIN;
+        boolean top = y <= RESIZE_MARGIN;
+        boolean bottom = y >= height - RESIZE_MARGIN;
+        if (top && left) return Cursor.NW_RESIZE;
+        if (top && right) return Cursor.NE_RESIZE;
+        if (bottom && left) return Cursor.SW_RESIZE;
+        if (bottom && right) return Cursor.SE_RESIZE;
+        if (left) return Cursor.W_RESIZE;
+        if (right) return Cursor.E_RESIZE;
+        if (top) return Cursor.N_RESIZE;
+        if (bottom) return Cursor.S_RESIZE;
+        return Cursor.DEFAULT;
+    }
+
+    private void resizeWindow(double dx, double dy) {
+        double minW = stage.getMinWidth();
+        double minH = stage.getMinHeight();
+        boolean west = resizeCursor == Cursor.W_RESIZE || resizeCursor == Cursor.NW_RESIZE || resizeCursor == Cursor.SW_RESIZE;
+        boolean east = resizeCursor == Cursor.E_RESIZE || resizeCursor == Cursor.NE_RESIZE || resizeCursor == Cursor.SE_RESIZE;
+        boolean north = resizeCursor == Cursor.N_RESIZE || resizeCursor == Cursor.NW_RESIZE || resizeCursor == Cursor.NE_RESIZE;
+        boolean south = resizeCursor == Cursor.S_RESIZE || resizeCursor == Cursor.SW_RESIZE || resizeCursor == Cursor.SE_RESIZE;
+
+        if (east) stage.setWidth(Math.max(minW, resizeStageWidth + dx));
+        if (south) stage.setHeight(Math.max(minH, resizeStageHeight + dy));
+        if (west) {
+            double width = Math.max(minW, resizeStageWidth - dx);
+            stage.setX(resizeStageX + resizeStageWidth - width);
+            stage.setWidth(width);
+        }
+        if (north) {
+            double height = Math.max(minH, resizeStageHeight - dy);
+            stage.setY(resizeStageY + resizeStageHeight - height);
+            stage.setHeight(height);
+        }
     }
 
     private MenuItem item(String text, String accelerator, javafx.event.EventHandler<javafx.event.ActionEvent> handler) {
@@ -118,7 +268,7 @@ public final class StudioApp extends Application {
     }
     private void showGraphicsWorkspace() {
         workspace.getChildren().setAll(new GraphicsEditorPane(this));
-        status("Importa imágenes o crea placeholders con Pixel Lab; luego asígnalos a tiles u objetos.");
+        status("Pixel-art se muestra con nearest-neighbor, sin suavizado. Importa imágenes o usa Pixel Lab.");
     }
 
     private void newProject() {
@@ -196,7 +346,12 @@ public final class StudioApp extends Application {
                 "5. ▶ Probar ejecuta el proyecto sin exportarlo.\n" +
                 "6. Exportar crea la aplicación autocontenida y un ZIP portable.");
     }
-    private void updateTitle() { if (stage != null) stage.setTitle("2gameRL Studio · " + project.getTitle() + (dirty ? "  ●" : "")); }
+    private void updateTitle() {
+        if (stage == null) return;
+        String title = "2gameRL Studio · " + project.getTitle() + (dirty ? "  ●" : "");
+        stage.setTitle(title);
+        windowTitle.setText(title);
+    }
     private void applyCss(Scene scene) { var css = getClass().getResource("/com/buttclapdev/twogamerl/studio.css"); if (css != null) scene.getStylesheets().add(css.toExternalForm()); }
     void error(String header, String message) { Alert a = new Alert(Alert.AlertType.ERROR, message == null ? "Error desconocido" : message, ButtonType.OK); a.setHeaderText(header); a.showAndWait(); }
     void info(String header, String message) { Alert a = new Alert(Alert.AlertType.INFORMATION, message, ButtonType.OK); a.setHeaderText(header); a.showAndWait(); }
