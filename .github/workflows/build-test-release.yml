@@ -34,6 +34,16 @@ jobs:
             if ($log -notmatch [regex]::Escape($required)) { throw "No se verifico el comportamiento: $required" }
           }
 
+      - name: 2.2 visual pipeline runtime smoke on Windows
+        shell: pwsh
+        run: |
+          $log = & "$env:JAVA_HOME\bin\java.exe" -cp "target\test-classes;target\app-input\*" com.buttclapdev.twogamerl.runtime.VisualPipeline22SmokeApp 2>&1 | Out-String
+          Write-Host $log
+          if ($LASTEXITCODE -ne 0) { throw "El smoke del pipeline visual 2.2 fallo." }
+          foreach ($required in @('PLATFORMER_GROUNDED_JUMP_OK','ANIMATOR_FRAME_EVENT_OK','PREFAB_SPAWN_OK')) {
+            if ($log -notmatch [regex]::Escape($required)) { throw "No se verifico el comportamiento 2.2: $required" }
+          }
+
       - name: Create Windows smoke projects
         shell: pwsh
         run: |
@@ -114,6 +124,7 @@ jobs:
       - name: Verify packaged Windows toolchain
         shell: pwsh
         run: |
+          if (-not (Test-Path "build\2rl-icon.ico")) { throw "Falta el icono Windows 2RL generado" }
           if (-not (Test-Path "build\2gameRL Studio\2gameRL Studio.exe")) { throw "Falta 2gameRL Studio.exe" }
           if (-not (Test-Path "build\2gameRL Studio\toolchain\bin\jpackage.exe")) { throw "El Studio no contiene jpackage.exe" }
           if (-not (Test-Path "build\2gameRL Studio\toolchain\jmods")) { throw "El Studio no contiene los jmods requeridos por jpackage" }
