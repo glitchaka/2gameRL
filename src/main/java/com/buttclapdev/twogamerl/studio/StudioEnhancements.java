@@ -9,28 +9,29 @@ import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 
+import java.util.List;
+
 final class StudioEnhancements {
+    private static final String AUTOCOMPLETE="2rl.script.autocomplete";
     private StudioEnhancements(){}
 
-    static void install(Stage stage,StudioApp app){
-        ThemeManager.install();ThemeManager.apply(stage.getScene());installMenus(stage,app);installWorkspaceHooks(stage,app);
-    }
+    static void install(Stage stage,StudioApp app){ThemeManager.install();ThemeManager.apply(stage.getScene());installMenus(stage,app);installWorkspaceHooks(stage,app);installScriptEditors(stage.getScene().getRoot(),app);}
 
     private static void installMenus(Stage stage,StudioApp app){
         MenuBar bar=findFirst(stage.getScene().getRoot(),MenuBar.class);if(bar==null)return;
-        if(bar.getMenus().stream().noneMatch(m->"Apariencia".equals(m.getText()))){
-            Menu appearance=new Menu("Apariencia");ToggleGroup group=new ToggleGroup();for(ThemeManager.Theme theme:ThemeManager.Theme.values()){RadioMenuItem item=new RadioMenuItem(theme.toString());item.setToggleGroup(group);item.setSelected(theme==ThemeManager.current());item.setOnAction(e->{ThemeManager.set(theme);app.status("Tema del Studio: "+theme+".");});appearance.getItems().add(item);}int helpIndex=-1;for(int i=0;i<bar.getMenus().size();i++)if("Ayuda".equals(bar.getMenus().get(i).getText())){helpIndex=i;break;}if(helpIndex<0)bar.getMenus().add(appearance);else bar.getMenus().add(helpIndex,appearance);
-        }
-        Menu help=bar.getMenus().stream().filter(m->"Ayuda".equals(m.getText())).findFirst().orElse(null);if(help!=null&&help.getItems().stream().noneMatch(i->"Biblia completa de 2GameScript".equals(i.getText()))){
-            for(MenuItem item:help.getItems())if(item.getText()!=null&&item.getText().contains("Tutorial y referencia")){item.setText("Tutorial interactivo y referencia rápida");item.setAccelerator(KeyCombination.keyCombination("F2"));}
-            MenuItem bible=new MenuItem("Biblia completa de 2GameScript");bible.setAccelerator(KeyCombination.keyCombination("F1"));bible.setOnAction(e->BibleDialog.show(stage));help.getItems().add(new SeparatorMenuItem());help.getItems().add(bible);
-        }
+        if(bar.getMenus().stream().noneMatch(m->"Apariencia".equals(m.getText()))){Menu appearance=new Menu("Apariencia");ToggleGroup group=new ToggleGroup();for(ThemeManager.Theme theme:ThemeManager.Theme.values()){RadioMenuItem item=new RadioMenuItem(theme.toString());item.setToggleGroup(group);item.setSelected(theme==ThemeManager.current());item.setOnAction(e->{ThemeManager.set(theme);app.status("Tema del Studio: "+theme+".");});appearance.getItems().add(item);}int helpIndex=-1;for(int i=0;i<bar.getMenus().size();i++)if("Ayuda".equals(bar.getMenus().get(i).getText())){helpIndex=i;break;}if(helpIndex<0)bar.getMenus().add(appearance);else bar.getMenus().add(helpIndex,appearance);}
+        Menu help=bar.getMenus().stream().filter(m->"Ayuda".equals(m.getText())).findFirst().orElse(null);if(help!=null&&help.getItems().stream().noneMatch(i->"Biblia completa de 2GameScript".equals(i.getText()))){for(MenuItem item:help.getItems())if(item.getText()!=null&&item.getText().contains("Tutorial y referencia")){item.setText("Tutorial interactivo y referencia rápida");item.setAccelerator(KeyCombination.keyCombination("F2"));}MenuItem bible=new MenuItem("Biblia completa de 2GameScript");bible.setAccelerator(KeyCombination.keyCombination("F1"));bible.setOnAction(e->BibleDialog.show(stage));help.getItems().add(new SeparatorMenuItem());help.getItems().add(bible);}
     }
 
     private static void installWorkspaceHooks(Stage stage,StudioApp app){
         if(!(stage.getScene().getRoot() instanceof BorderPane root))return;if(!(root.getCenter() instanceof StackPane workspace))return;
-        Runnable installCurrent=()->{for(Node child:workspace.getChildren())if(child instanceof GraphicsEditorPane pane)GraphicsBrowserEnhancements.install(pane,app);};installCurrent.run();workspace.getChildren().addListener((ListChangeListener<Node>)c->installCurrent.run());
+        Runnable installCurrent=()->{for(Node child:workspace.getChildren()){if(child instanceof GraphicsEditorPane pane)GraphicsBrowserEnhancements.install(pane,app);installScriptEditors(child,app);}};installCurrent.run();workspace.getChildren().addListener((ListChangeListener<Node>)c->installCurrent.run());
     }
 
+    private static void installScriptEditors(Node node,StudioApp app){
+        if(node instanceof TextArea area&&isScriptEditor(area)&&!Boolean.TRUE.equals(area.getProperties().get(AUTOCOMPLETE))){area.getProperties().put(AUTOCOMPLETE,true);ScriptAutocomplete.install(area,app,List::of);Tooltip.install(area,new Tooltip("2GameScript: autocompletado contextual automático. Ctrl+Espacio fuerza las sugerencias."));}
+        if(node instanceof Parent parent&&!Boolean.TRUE.equals(parent.getProperties().get(AUTOCOMPLETE+".watch"))){parent.getProperties().put(AUTOCOMPLETE+".watch",true);parent.getChildrenUnmodifiable().addListener((ListChangeListener<Node>)change->{while(change.next())for(Node added:change.getAddedSubList())installScriptEditors(added,app);});for(Node child:parent.getChildrenUnmodifiable())installScriptEditors(child,app);}
+    }
+    private static boolean isScriptEditor(TextArea area){String style=area.getStyle()==null?"":area.getStyle().toLowerCase();return style.contains("monospace")||style.contains("consolas")||style.contains("jetbrains mono");}
     private static <T extends Node>T findFirst(Node root,Class<T>type){if(type.isInstance(root))return type.cast(root);if(root instanceof Parent parent)for(Node child:parent.getChildrenUnmodifiable()){T found=findFirst(child,type);if(found!=null)return found;}return null;}
 }
