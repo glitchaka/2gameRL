@@ -54,6 +54,16 @@ jobs:
             if ($log -notmatch [regex]::Escape($required)) { throw "No se verifico el comportamiento 2.2.2: $required" }
           }
 
+      - name: 2.3.0 RC runtime smoke on Windows
+        shell: pwsh
+        run: |
+          $log = & "$env:JAVA_HOME\bin\java.exe" -cp "target\test-classes;target\app-input\*" com.buttclapdev.twogamerl.runtime.Release230RcRuntimeSmokeApp 2>&1 | Out-String
+          Write-Host $log
+          if ($LASTEXITCODE -ne 0) { throw "El smoke runtime 2.3.0 RC fallo." }
+          foreach ($required in @('RC_ANIMATOR_PARAM_BLEND_OK','RC_DIRECTIONAL_REVERSE_FPS_OK','RC_FRAME_HITBOX_HURTBOX_OK','RC_CAMERA_ADVANCED_OK')) {
+            if ($log -notmatch [regex]::Escape($required)) { throw "No se verifico el comportamiento 2.3.0 RC: $required" }
+          }
+
       - name: Create Windows smoke projects
         shell: pwsh
         run: |

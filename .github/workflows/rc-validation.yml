@@ -1,0 +1,174 @@
+name: Validate RC
+
+on:
+  push:
+    branches:
+      - 'release/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows-rc:
+    name: Windows RC validation
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: maven
+
+      - name: Compile package and run all unit tests
+        shell: pwsh
+        run: mvn -B -ntp clean test package
+
+      - name: Deterministic base runtime smoke
+        shell: pwsh
+        run: |
+          $log = & "$env:JAVA_HOME\bin\java.exe" -cp "target\test-classes;target\app-input\*" com.buttclapdev.twogamerl.runtime.RuntimeFeatureSmokeApp 2>&1 | Out-String
+          Write-Host $log
+          if ($LASTEXITCODE -ne 0) { throw "Base runtime smoke failed." }
+          foreach ($required in @('BOXCOLLIDER_STATIC_OK','TIMER_CREATE_OK','WAIT_DESTROY_CREATE_OK')) {
+            if ($log -notmatch [regex]::Escape($required)) { throw "Missing base marker: $required" }
+          }
+
+      - name: Visual pipeline 2.2 regression smoke
+        shell: pwsh
+        run: |
+          $log = & "$env:JAVA_HOME\bin\java.exe" -cp "target\test-classes;target\app-input\*" com.buttclapdev.twogamerl.runtime.VisualPipeline22SmokeApp 2>&1 | Out-String
+          Write-Host $log
+          if ($LASTEXITCODE -ne 0) { throw "2.2 visual smoke failed." }
+          foreach ($required in @('PLATFORMER_GROUNDED_JUMP_OK','ANIMATOR_FRAME_EVENT_OK','PREFAB_SPAWN_OK')) {
+            if ($log -notmatch [regex]::Escape($required)) { throw "Missing 2.2 marker: $required" }
+          }
+
+      - name: 2.2.2 particle camera prefab regression smoke
+        shell: pwsh
+        run: |
+          $log = & "$env:JAVA_HOME\bin\java.exe" -cp "target\test-classes;target\app-input\*" com.buttclapdev.twogamerl.runtime.Release222RuntimeSmokeApp 2>&1 | Out-String
+          Write-Host $log
+          if ($LASTEXITCODE -ne 0) { throw "2.2.2 runtime smoke failed." }
+          foreach ($required in @('PARTICLE_CONTINUOUS_OK','PARTICLE_MISSING_REF_DIAGNOSTIC_OK','PARTICLE_BURST_RESTART_OK','PARTICLE_PRESET_RECOVERY_OK','PARTICLE_LOCAL_WORLD_OK','PARTICLE_DIRECTION_OK','PARTICLE_FLOOD_GUARD_OK','PREFAB_INSTANCE_COMPONENT_OK','CAMERA_222_OK')) {
+            if ($log -notmatch [regex]::Escape($required)) { throw "Missing 2.2.2 marker: $required" }
+          }
+
+      - name: 2.3.0 RC runtime smoke
+        shell: pwsh
+        run: |
+          $log = & "$env:JAVA_HOME\bin\java.exe" -cp "target\test-classes;target\app-input\*" com.buttclapdev.twogamerl.runtime.Release230RcRuntimeSmokeApp 2>&1 | Out-String
+          Write-Host $log
+          if ($LASTEXITCODE -ne 0) { throw "2.3.0 RC runtime smoke failed." }
+          foreach ($required in @('RC_ANIMATOR_PARAM_BLEND_OK','RC_DIRECTIONAL_REVERSE_FPS_OK','RC_FRAME_HITBOX_HURTBOX_OK','RC_CAMERA_ADVANCED_OK')) {
+            if ($log -notmatch [regex]::Escape($required)) { throw "Missing RC marker: $required" }
+          }
+
+      - name: Create Windows smoke projects
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path target\smoke | Out-Null
+          & "$env:JAVA_HOME\bin\java.exe" -cp "target\test-classes;target\app-input\*" com.buttclapdev.twogamerl.SmokeProjectCreator target\smoke\default.2grl
+          if ($LASTEXITCODE -ne 0) { throw "Could not create default smoke project." }
+          & "$env:JAVA_HOME\bin\java.exe" -cp "target\test-classes;target\app-input\*" com.buttclapdev.twogamerl.ComponentSmokeProjectCreator components target\smoke\components.2grl
+          if ($LASTEXITCODE -ne 0) { throw "Could not create component smoke project." }
+          & "$env:JAVA_HOME\bin\java.exe" -cp "target\test-classes;target\app-input\*" com.buttclapdev.twogamerl.ComponentSmokeProjectCreator portal target\smoke\portal.2grl
+          if ($LASTEXITCODE -ne 0) { throw "Could not create portal smoke project." }
+
+      - name: Runtime and script smoke on Windows
+        shell: pwsh
+        run: |
+          $stdout = "target\runtime-smoke.log"
+          $stderr = "target\runtime-smoke.err.log"
+          $p = Start-Process -FilePath "$env:JAVA_HOME\bin\java.exe" -ArgumentList '-Dtwogamerl.project=target\smoke\default.2grl','-cp','target\app-input\*','com.buttclapdev.twogamerl.runtime.GameLauncher' -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          Start-Sleep -Seconds 7
+          $p.Refresh()
+          if ($p.HasExited) { Get-Content $stdout -ErrorAction SilentlyContinue; Get-Content $stderr -ErrorAction SilentlyContinue; throw "Runtime exited early: $($p.ExitCode)" }
+          Stop-Process -Id $p.Id -Force
+          $log = (Get-Content $stdout -Raw -ErrorAction SilentlyContinue) + (Get-Content $stderr -Raw -ErrorAction SilentlyContinue)
+          if ($log -notmatch '\[Jugador\] Jugador iniciado') { throw "Player start script did not execute." }
+
+      - name: Components regression on Windows
+        shell: pwsh
+        run: |
+          $stdout = "target\components-smoke.log"
+          $stderr = "target\components-smoke.err.log"
+          $p = Start-Process -FilePath "$env:JAVA_HOME\bin\java.exe" -ArgumentList '-Dtwogamerl.project=target\smoke\components.2grl','-cp','target\app-input\*','com.buttclapdev.twogamerl.runtime.GameLauncher' -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          Start-Sleep -Seconds 8
+          $p.Refresh()
+          if ($p.HasExited) { Get-Content $stdout -ErrorAction SilentlyContinue; Get-Content $stderr -ErrorAction SilentlyContinue; throw "Components runtime exited early: $($p.ExitCode)" }
+          Stop-Process -Id $p.Id -Force
+          $log = (Get-Content $stdout -Raw -ErrorAction SilentlyContinue) + (Get-Content $stderr -Raw -ErrorAction SilentlyContinue)
+          foreach ($required in @('PLAYER_START_OK','BOXCOLLIDER_OK','STATIC_COLLIDER_OK','TRIGGER_OK','RIGIDBODY_OK','PATROL_COLLIDER_OK')) {
+            if ($log -notmatch [regex]::Escape($required)) { throw "Missing component marker: $required" }
+          }
+          if ($log -match 'BOXCOLLIDER_FAILED_PASSTHROUGH') { throw "BoxCollider passthrough regression." }
+
+      - name: ScenePortal regression on Windows
+        shell: pwsh
+        run: |
+          $stdout = "target\portal-smoke.log"
+          $stderr = "target\portal-smoke.err.log"
+          $p = Start-Process -FilePath "$env:JAVA_HOME\bin\java.exe" -ArgumentList '-Dtwogamerl.project=target\smoke\portal.2grl','-cp','target\app-input\*','com.buttclapdev.twogamerl.runtime.GameLauncher' -PassThru -RedirectStandardOutput $stdout -RedirectStandardError $stderr
+          Start-Sleep -Seconds 5
+          $p.Refresh()
+          if ($p.HasExited) { Get-Content $stdout -ErrorAction SilentlyContinue; Get-Content $stderr -ErrorAction SilentlyContinue; throw "Portal runtime exited early: $($p.ExitCode)" }
+          Stop-Process -Id $p.Id -Force
+          $log = (Get-Content $stdout -Raw -ErrorAction SilentlyContinue) + (Get-Content $stderr -Raw -ErrorAction SilentlyContinue)
+          if ($log -notmatch 'PORTAL_TARGET_OK') { throw "Portal target failed." }
+          if ($log -notmatch 'PORTAL_POSITION_7_8') { throw "Portal target position failed." }
+
+      - name: Package Windows Studio
+        shell: pwsh
+        run: |
+          [xml]$pom = Get-Content pom.xml
+          $version = $pom.project.version
+          cmd /c "scripts\package-editor.bat $version"
+          if ($LASTEXITCODE -ne 0) { throw "Windows packaging failed: $LASTEXITCODE" }
+
+      - name: Verify packaged Studio and bundled toolchain
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "build\2gameRL Studio\2gameRL Studio.exe")) { throw "Missing Studio executable." }
+          if (-not (Test-Path "build\2gameRL Studio\toolchain\bin\jpackage.exe")) { throw "Missing bundled jpackage." }
+          if (-not (Test-Path "build\2gameRL Studio\toolchain\jmods")) { throw "Missing bundled jmods." }
+
+      - name: Launch packaged Studio
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "build\2gameRL Studio\2gameRL Studio.exe" -PassThru
+          Start-Sleep -Seconds 8
+          $p.Refresh()
+          if ($p.HasExited) { throw "Packaged Studio exited early: $($p.ExitCode)" }
+          Stop-Process -Id $p.Id -Force
+
+      - name: Export Windows game with bundled toolchain
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path build\export-smoke | Out-Null
+          & "build\2gameRL Studio\toolchain\bin\java.exe" -cp "build\2gameRL Studio\app\*" com.buttclapdev.twogamerl.export.ExportCli target\smoke\default.2grl build\export-smoke
+          if ($LASTEXITCODE -ne 0) { throw "Bundled-toolchain export failed." }
+          if (-not (Test-Path "build\export-smoke\2gameRL-Smoke\2gameRL-Smoke.exe")) { throw "Missing exported game executable." }
+          if (-not (Test-Path "build\export-smoke\2gameRL-Smoke-portable.zip")) { throw "Missing exported portable zip." }
+
+      - name: Launch exported game
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "build\export-smoke\2gameRL-Smoke\2gameRL-Smoke.exe" -PassThru
+          Start-Sleep -Seconds 8
+          $p.Refresh()
+          if ($p.HasExited) { throw "Exported game exited early: $($p.ExitCode)" }
+          Stop-Process -Id $p.Id -Force
+
+      - name: Archive validated RC Studio
+        shell: pwsh
+        run: |
+          [xml]$pom = Get-Content pom.xml
+          $version = $pom.project.version
+          Compress-Archive -Path "build\2gameRL Studio" -DestinationPath "build\2gameRL-Studio-Windows-v$version.zip" -Force
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-rc-studio
+          path: build/2gameRL-Studio-Windows-v2.3.0-rc1.zip
