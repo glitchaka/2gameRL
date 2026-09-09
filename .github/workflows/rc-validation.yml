@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'release/**'
+      - 'hotfix/2.3.0-rc1-visual-polish'
   workflow_dispatch:
 
 permissions:
@@ -171,4 +172,4 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: windows-rc-studio
-          path: build/2gameRL-Studio-Windows-v2.3.0-rc1.zip
+          path: build/2gameRL-Studio-Windows-v2.3.0-rc2.zip
