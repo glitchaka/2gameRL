@@ -3,19 +3,27 @@ package com.buttclapdev.twogamerl.studio;
 import javafx.collections.ListChangeListener;
 import javafx.scene.Node;
 import javafx.scene.Parent;
+import javafx.scene.Scene;
 import javafx.scene.control.*;
+import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyCombination;
+import javafx.scene.input.KeyEvent;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
+import javafx.stage.Window;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.WeakHashMap;
 
 final class StudioEnhancements {
     private static final String AUTOCOMPLETE="2rl.script.autocomplete";
+    private static final Set<Scene> PREVIEW_HOOKS=Collections.newSetFromMap(new WeakHashMap<>());
     private StudioEnhancements(){}
 
-    static void install(Stage stage,StudioApp app){ThemeManager.install();ThemeManager.apply(stage.getScene());installMenus(stage,app);installWorkspaceHooks(stage,app);installScriptEditors(stage.getScene().getRoot(),app);}
+    static void install(Stage stage,StudioApp app){ThemeManager.install();ThemeManager.apply(stage.getScene());installMenus(stage,app);installWorkspaceHooks(stage,app);installScriptEditors(stage.getScene().getRoot(),app);installPreviewCloseHook();}
 
     private static void installMenus(Stage stage,StudioApp app){
         MenuBar bar=findFirst(stage.getScene().getRoot(),MenuBar.class);if(bar==null)return;
@@ -23,15 +31,13 @@ final class StudioEnhancements {
         Menu help=bar.getMenus().stream().filter(m->"Ayuda".equals(m.getText())).findFirst().orElse(null);if(help!=null&&help.getItems().stream().noneMatch(i->"Biblia completa de 2GameScript".equals(i.getText()))){for(MenuItem item:help.getItems())if(item.getText()!=null&&item.getText().contains("Tutorial y referencia")){item.setText("Tutorial interactivo y referencia rápida");item.setAccelerator(KeyCombination.keyCombination("F2"));}MenuItem bible=new MenuItem("Biblia completa de 2GameScript");bible.setAccelerator(KeyCombination.keyCombination("F1"));bible.setOnAction(e->BibleDialog.show(stage));help.getItems().add(new SeparatorMenuItem());help.getItems().add(bible);}
     }
 
-    private static void installWorkspaceHooks(Stage stage,StudioApp app){
-        if(!(stage.getScene().getRoot() instanceof BorderPane root))return;if(!(root.getCenter() instanceof StackPane workspace))return;
-        Runnable installCurrent=()->{for(Node child:workspace.getChildren()){if(child instanceof GraphicsEditorPane pane)GraphicsBrowserEnhancements.install(pane,app);installScriptEditors(child,app);}};installCurrent.run();workspace.getChildren().addListener((ListChangeListener<Node>)c->installCurrent.run());
-    }
+    private static void installWorkspaceHooks(Stage stage,StudioApp app){if(!(stage.getScene().getRoot() instanceof BorderPane root))return;if(!(root.getCenter() instanceof StackPane workspace))return;Runnable installCurrent=()->{for(Node child:workspace.getChildren()){if(child instanceof GraphicsEditorPane pane)GraphicsBrowserEnhancements.install(pane,app);installScriptEditors(child,app);}};installCurrent.run();workspace.getChildren().addListener((ListChangeListener<Node>)c->installCurrent.run());}
 
-    private static void installScriptEditors(Node node,StudioApp app){
-        if(node instanceof TextArea area&&isScriptEditor(area)&&!Boolean.TRUE.equals(area.getProperties().get(AUTOCOMPLETE))){area.getProperties().put(AUTOCOMPLETE,true);ScriptAutocomplete.install(area,app,List::of);Tooltip.install(area,new Tooltip("2GameScript: autocompletado contextual automático. Ctrl+Espacio fuerza las sugerencias."));}
-        if(node instanceof Parent parent&&!Boolean.TRUE.equals(parent.getProperties().get(AUTOCOMPLETE+".watch"))){parent.getProperties().put(AUTOCOMPLETE+".watch",true);parent.getChildrenUnmodifiable().addListener((ListChangeListener<Node>)change->{while(change.next())for(Node added:change.getAddedSubList())installScriptEditors(added,app);});for(Node child:parent.getChildrenUnmodifiable())installScriptEditors(child,app);}
-    }
+    private static void installScriptEditors(Node node,StudioApp app){if(node instanceof TextArea area&&isScriptEditor(area)&&!Boolean.TRUE.equals(area.getProperties().get(AUTOCOMPLETE))){area.getProperties().put(AUTOCOMPLETE,true);ScriptAutocomplete.install(area,app,List::of);Tooltip.install(area,new Tooltip("2GameScript: autocompletado contextual automático. Ctrl+Espacio fuerza las sugerencias."));}if(node instanceof Parent parent&&!Boolean.TRUE.equals(parent.getProperties().get(AUTOCOMPLETE+".watch"))){parent.getProperties().put(AUTOCOMPLETE+".watch",true);parent.getChildrenUnmodifiable().addListener((ListChangeListener<Node>)change->{while(change.next())for(Node added:change.getAddedSubList())installScriptEditors(added,app);});for(Node child:parent.getChildrenUnmodifiable())installScriptEditors(child,app);}}
     private static boolean isScriptEditor(TextArea area){String style=area.getStyle()==null?"":area.getStyle().toLowerCase();return style.contains("monospace")||style.contains("consolas")||style.contains("jetbrains mono");}
+
+    private static void installPreviewCloseHook(){Window.getWindows().addListener((ListChangeListener<Window>)change->{while(change.next())for(Window window:change.getAddedSubList())hookPreview(window);});for(Window window:Window.getWindows())hookPreview(window);}
+    private static void hookPreview(Window window){if(!(window instanceof Stage stage))return;Runnable install=()->{Scene scene=stage.getScene();if(scene==null||!stage.getTitle().startsWith("Probar ·")||!PREVIEW_HOOKS.add(scene))return;scene.addEventFilter(KeyEvent.KEY_PRESSED,e->{if(e.getCode()==KeyCode.F10){stage.close();e.consume();}});};install.run();stage.sceneProperty().addListener((o,a,b)->install.run());stage.titleProperty().addListener((o,a,b)->install.run());}
+
     private static <T extends Node>T findFirst(Node root,Class<T>type){if(type.isInstance(root))return type.cast(root);if(root instanceof Parent parent)for(Node child:parent.getChildrenUnmodifiable()){T found=findFirst(child,type);if(found!=null)return found;}return null;}
 }
