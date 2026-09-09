@@ -3,6 +3,7 @@ package com.buttclapdev.twogamerl.runtime;
 import com.buttclapdev.twogamerl.AppIcon;
 import com.buttclapdev.twogamerl.io.ProjectIO;
 import com.buttclapdev.twogamerl.model.GameProject;
+import com.buttclapdev.twogamerl.model.ResourceRef;
 import com.buttclapdev.twogamerl.model.GameProject.ScreenMode;
 import javafx.application.Application;
 import javafx.scene.Scene;
@@ -16,6 +17,7 @@ import java.nio.file.*;
 public final class GameApp extends Application {
     @Override public void start(Stage stage) throws Exception {
         GameProject project=loadBundledProject();
+        ResourceRef.installRuntimeAliases(project);
         if(project.getScreenMode()==ScreenMode.FULLSCREEN_BORDERLESS)stage.initStyle(StageStyle.UNDECORATED);
         GameView view=new GameView(project);
         int scale=3;
