@@ -1,0 +1,35 @@
+name: Patch RC regex escapes
+
+on:
+  push:
+    branches:
+      - 'release/2.3.0-rc1'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.event.head_commit.message == 'ci: patch RC regex escapes'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Correct Java regex escaping
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/main/java/com/buttclapdev/twogamerl/runtime/GameView.java')
+          s=p.read_text(encoding='utf-8')
+          old='path.split("\\.")'
+          new='path.split("\\\\.")'
+          count=s.count(old)
+          if count != 2:
+              raise SystemExit(f'Expected 2 bad escapes, found {count}')
+          p.write_text(s.replace(old,new),encoding='utf-8',newline='\n')
+          PY
+          git config user.name "glitchaka"
+          git config user.email "82622846+glitchaka@users.noreply.github.com"
+          git add src/main/java/com/buttclapdev/twogamerl/runtime/GameView.java
+          git commit -m "fix: correct animator path regex escapes"
+          git push origin HEAD:release/2.3.0-rc1
