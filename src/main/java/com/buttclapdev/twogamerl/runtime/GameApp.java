@@ -20,6 +20,7 @@ public final class GameApp extends Application {
         ResourceRef.installRuntimeAliases(project);
         if(project.getScreenMode()==ScreenMode.FULLSCREEN_BORDERLESS)stage.initStyle(StageStyle.UNDECORATED);
         GameView view=new GameView(project);
+        ParticleRuntime222.attach(view);
         int scale=3;
         Scene scene=new Scene(view,Math.max(640,project.getLogicalWidth()*scale),Math.max(360,project.getLogicalHeight()*scale));
         var css=GameApp.class.getResource("/com/buttclapdev/twogamerl/studio.css");if(css!=null)scene.getStylesheets().add(css.toExternalForm());
