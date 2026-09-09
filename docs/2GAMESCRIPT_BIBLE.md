@@ -2138,7 +2138,7 @@ Además se emite la señal de mundo `animationHit`. Si el atacante posee `Damage
 
 ## 30.4 Animation Lab
 
-`RC 2.3 → Animation Lab` es el editor técnico de clips. Incluye preview animado, timeline, reordenamiento, FPS, speed, loop, ping-pong, random start, reverse, onion skin previo/siguiente, crosshair de pivot, markers y edición/overlay de hitboxes y hurtboxes.
+`RC 2.3 → Animation Lab` es el editor técnico de clips. Incluye preview animado, timeline, reordenamiento, FPS, speed, loop, ping-pong, random start, reverse, onion skin previo/siguiente, crosshair del `Asset.pivotX/pivotY`, markers y edición/overlay de hitboxes y hurtboxes.
 
 El onion skin solo afecta la previsualización del Studio; no altera el recurso ni el runtime.
 
