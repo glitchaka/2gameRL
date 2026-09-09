@@ -1,11 +1,11 @@
 package com.buttclapdev.twogamerl.runtime;
 
+import com.buttclapdev.twogamerl.AppIcon;
 import com.buttclapdev.twogamerl.io.ProjectIO;
 import com.buttclapdev.twogamerl.model.GameProject;
 import com.buttclapdev.twogamerl.model.GameProject.ScreenMode;
 import javafx.application.Application;
 import javafx.scene.Scene;
-import javafx.scene.image.Image;
 import javafx.scene.input.KeyCode;
 import javafx.stage.Stage;
 import javafx.stage.StageStyle;
@@ -21,7 +21,7 @@ public final class GameApp extends Application {
         int scale=3;
         Scene scene=new Scene(view,Math.max(640,project.getLogicalWidth()*scale),Math.max(360,project.getLogicalHeight()*scale));
         var css=GameApp.class.getResource("/com/buttclapdev/twogamerl/studio.css");if(css!=null)scene.getStylesheets().add(css.toExternalForm());
-        try(InputStream icon=GameApp.class.getResourceAsStream("/com/buttclapdev/twogamerl/2rl-icon.png")){if(icon!=null)stage.getIcons().add(new Image(icon));}
+        stage.getIcons().add(AppIcon.create(256));
         stage.setTitle(project.getTitle());stage.setScene(scene);stage.setMinWidth(Math.min(720,Math.max(320,project.getLogicalWidth())));stage.setMinHeight(Math.min(480,Math.max(180,project.getLogicalHeight())));
         scene.setOnKeyPressed(e->{if(e.getCode()==KeyCode.F11){stage.setFullScreen(!stage.isFullScreen());e.consume();}});
         stage.show();
