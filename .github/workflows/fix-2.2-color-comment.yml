@@ -1,0 +1,38 @@
+name: Fix 2.2 color token parsing
+
+on:
+  push:
+    branches: [release/2.2.0-visual-pipeline]
+    paths: [.github/workflows/fix-2.2-color-comment.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: release/2.2.0-visual-pipeline
+      - name: Preserve hex colors while stripping comments
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/main/java/com/buttclapdev/twogamerl/script/ScriptProgram.java')
+          s=p.read_text(encoding='utf-8')
+          old='private static String stripComment(String line){boolean quoted=false;for(int i=0;i<line.length();i++){if(line.charAt(i)==\'"\')quoted=!quoted;else if(line.charAt(i)==\'#\'&&!quoted)return line.substring(0,i);}return line;}'
+          new='private static String stripComment(String line){boolean quoted=false;for(int i=0;i<line.length();i++){char ch=line.charAt(i);if(ch==\'"\')quoted=!quoted;else if(ch==\'#\'&&!quoted){int remaining=line.length()-i-1;boolean six=remaining>=6&&isHex(line,i+1,6)&&(i+7==line.length()||Character.isWhitespace(line.charAt(i+7)));boolean eight=remaining>=8&&isHex(line,i+1,8)&&(i+9==line.length()||Character.isWhitespace(line.charAt(i+9)));if(!six&&!eight)return line.substring(0,i);}}return line;}\n    private static boolean isHex(String line,int start,int length){if(start<0||start+length>line.length())return false;for(int i=start;i<start+length;i++)if(Character.digit(line.charAt(i),16)<0)return false;return true;}'
+          if s.count(old)!=1:
+              raise SystemExit(f'No se encontró exactamente una implementación stripComment esperada: {s.count(old)}')
+          p.write_text(s.replace(old,new),encoding='utf-8')
+          PY
+      - name: Commit source correction
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/main/java/com/buttclapdev/twogamerl/script/ScriptProgram.java
+          git commit -m "fix: preserve hex colors in 2GameScript comments parser"
+          git push origin HEAD:release/2.2.0-visual-pipeline
