@@ -44,6 +44,16 @@ jobs:
             if ($log -notmatch [regex]::Escape($required)) { throw "No se verifico el comportamiento 2.2: $required" }
           }
 
+      - name: 2.2.2 particles camera and prefab runtime smoke
+        shell: pwsh
+        run: |
+          $log = & "$env:JAVA_HOME\bin\java.exe" -cp "target\test-classes;target\app-input\*" com.buttclapdev.twogamerl.runtime.Release222RuntimeSmokeApp 2>&1 | Out-String
+          Write-Host $log
+          if ($LASTEXITCODE -ne 0) { throw "El smoke runtime 2.2.2 fallo." }
+          foreach ($required in @('PARTICLE_CONTINUOUS_OK','PARTICLE_MISSING_REF_DIAGNOSTIC_OK','PARTICLE_BURST_RESTART_OK','PREFAB_INSTANCE_COMPONENT_OK','CAMERA_222_OK')) {
+            if ($log -notmatch [regex]::Escape($required)) { throw "No se verifico el comportamiento 2.2.2: $required" }
+          }
+
       - name: Create Windows smoke projects
         shell: pwsh
         run: |
@@ -198,7 +208,9 @@ jobs:
             echo "ERROR: $TAG ya existe. Incrementa la version antes de publicar otro cambio."
             exit 1
           fi
+          EXTRA=()
+          if [[ "$VERSION" == *"-rc"* || "$VERSION" == *"-RC"* ]]; then EXTRA+=(--prerelease); fi
           gh release create "$TAG" release-assets/* \
             --target "$GITHUB_SHA" \
             --title "2gameRL Studio ${VERSION} - Windows" \
-            --generate-notes
+            --generate-notes "${EXTRA[@]}"
