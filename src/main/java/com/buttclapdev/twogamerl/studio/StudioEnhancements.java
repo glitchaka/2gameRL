@@ -23,7 +23,7 @@ final class StudioEnhancements {
     private static final Set<Scene> PREVIEW_HOOKS=Collections.newSetFromMap(new WeakHashMap<>());
     private StudioEnhancements(){}
 
-    static void install(Stage stage,StudioApp app){ThemeManager.install();ThemeManager.apply(stage.getScene());installMenus(stage,app);installWorkspaceHooks(stage,app);installScriptEditors(stage.getScene().getRoot(),app);TutorialPatch222.install(stage.getScene().getRoot(),stage);installPreviewCloseHook();}
+    static void install(Stage stage,StudioApp app){ThemeManager.install();ThemeManager.apply(stage.getScene());installMenus(stage,app);RcFeaturePack.install(stage,app);installWorkspaceHooks(stage,app);installScriptEditors(stage.getScene().getRoot(),app);TutorialPatch222.install(stage.getScene().getRoot(),stage);installPreviewCloseHook();}
 
     private static void installMenus(Stage stage,StudioApp app){
         MenuBar bar=findFirst(stage.getScene().getRoot(),MenuBar.class);if(bar==null)return;
