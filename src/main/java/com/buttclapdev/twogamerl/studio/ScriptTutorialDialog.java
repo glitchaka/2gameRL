@@ -39,56 +39,53 @@ on update
   # se ejecuta cada frame
 end
 ""","No es Java, JavaScript, Lua ni Python. Los comandos, rutas y componentes documentados aquí son la API del motor."),
-        topic("GUÍAS","01 · WASD libre","Movimiento manual continuo usando vx/vy. A y D controlan X; W y S controlan Y. Es útil cuando no quieres GridMovement.","self.vx = <velocidad>\nself.vy = <velocidad>\nifKey <TECLA> ... end","""
+        topic("GUÍAS","01 · WASD libre","Movimiento continuo mediante acciones del Input Map. El script describe intención de gameplay y no queda atado a un teclado concreto.","ifAction <acción> ... end\nself.vx = <velocidad>\nself.vy = <velocidad>","""
 on update
   self.vx = 0
   self.vy = 0
 
-  ifKey A
+  ifAction MoveLeft
     self.vx = -5
   end
-  ifKey D
+  ifAction MoveRight
     self.vx = 5
   end
-  ifKey W
+  ifAction MoveUp
     self.vy = -5
   end
-  ifKey S
+  ifAction MoveDown
     self.vy = 5
   end
 end
-""","Necesitas BoxCollider2D si quieres bloqueo contra sólidos. Si además usas Rigidbody2D con gravedad, no pongas self.vy = 0 cada frame porque cancelarías la gravedad."),
-        topic("GUÍAS","02 · Plataformas: A/D + gravedad + salto","En un plataformas el jugador controla X, mientras Rigidbody2D controla Y mediante gravedad. El salto consiste en dar una velocidad Y negativa una sola vez.","Rigidbody2D.gravityScale = 1\nself.vx = ...\nself.vy = -<fuerzaSalto>","""
-on start
-  Rigidbody2D.gravityScale = 1
-end
-
+""","Configura MoveLeft/MoveRight/MoveUp/MoveDown en Configuración > Input Map. ifKey sigue disponible, pero las acciones son la API recomendada para gameplay nuevo."),
+        topic("GUÍAS","02 · Plataformas: A/D + gravedad + salto","En un plataformas el jugador controla X, Rigidbody2D aplica gravedad y grounded evita saltos en el aire. También puedes añadir PlatformerController y configurar estas acciones sin escribir el movimiento a mano.","Rigidbody2D.grounded:boolean # solo lectura\nifActionPressed Jump ... end","""
 on update
   self.vx = 0
 
-  ifKey A
+  ifAction MoveLeft
     self.vx = -5
   end
-  ifKey D
+  ifAction MoveRight
     self.vx = 5
   end
 
-  ifPressed SPACE
-    self.vy = -8
+  ifActionPressed Jump
+    if Rigidbody2D.grounded == true
+      self.vy = -8
+    end
   end
 end
-""","IMPORTANTE: 2.1.0 todavía no expone Rigidbody2D.grounded. Este ejemplo permite volver a saltar en el aire si se pulsa SPACE otra vez. La referencia lo marca como limitación; 2.2 debe exponer grounded/touching para un salto de plataformas correcto."),
-        topic("GUÍAS","03 · Movimiento por cuadrícula","GridMovement implementa movimiento discreto por casillas y ya escucha WASD; opcionalmente también flechas.","GridMovement.<propiedad> = <valor>","""
+""","La entidad necesita normalmente Rigidbody2D y BoxCollider2D. Rigidbody2D.grounded, touchingLeft, touchingRight y touchingTop son sensores de solo lectura calculados por el runtime."),
+        topic("GUÍAS","03 · Movimiento por cuadrícula","GridMovement implementa movimiento discreto por casillas y usa las acciones MoveLeft/MoveRight/MoveUp/MoveDown del Input Map.","GridMovement.<propiedad> = <valor>","""
 on start
   GridMovement.enabled = true
   GridMovement.step = 1
-  GridMovement.allowArrows = true
   GridMovement.allowDiagonal = false
   GridMovement.repeatDelay = 0.16
   GridMovement.moveDuration = 0.10
   GridMovement.snap = true
 end
-""","No escribas ifKey W/A/S/D si GridMovement ya debe encargarse del control. BoxCollider2D y las capas físicas resuelven el bloqueo."),
+""","No necesitas escribir WASD manualmente. Cambia los bindings en Configuración > Input Map. BoxCollider2D y las capas físicas resuelven el bloqueo."),
         topic("GUÍAS","04 · Clic que invierte gravedad","Ejemplo mínimo de asignación matemática sobre un componente.","Rigidbody2D.gravityScale *= -1","""
 on start
   Rigidbody2D.gravityScale = 1
@@ -146,11 +143,12 @@ on event descongelar
   layer.collision = false
 end
 ""","El script de capa afecta a la capa completa, no a una celda individual."),
-        topic("GUÍAS","10 · Texto FREE, BUBBLE y NOVEL","2GameScript tiene tres soportes de texto en pantalla.","showText <free|bubble|novel> ...","""
+        topic("GUÍAS","10 · Texto FREE, BUBBLE y NOVEL","Los tres modos de texto consumen TextStyle editable: fuente, tamaños, colores, fondo, borde, sombra, padding y fades pueden configurarse sin modificar Java.","showText <free|bubble|novel> ... [style nombre] [color #RRGGBB]","""
 showText free screen "NIVEL 1" 3
-showText bubble self "¿Qué fue eso?" 4
-showText novel Diego "No deberíamos estar aquí." click
-""","En 2.1.0 los estilos visuales todavía están fijados por el runtime; 2.2 los moverá a TextStyle editable."),
+showText free screen "PELIGRO" 2 style warning
+showText bubble self "¿Qué fue eso?" 4 style guardia
+showText novel Diego "No deberíamos estar aquí." click style dialogo
+""","color permite un override puntual. Para estilos reutilizables crea un TextStyle en Gráficos > Texto."),
         topic("GUÍAS","11 · Temporizadores e iteraciones","wait pausa una secuencia; timer agenda una acción; every repite temporalmente; repeat repite inmediatamente.","wait <s>\ntimer <s> <comando>\nevery <s> <cantidad> <comando>\nrepeat <cantidad> ... end","""
 on start
   timer 2 create explosion
@@ -205,6 +203,27 @@ on event alarma
 end
 ""","Puede existir en entidades, capas y escena."),
 
+        topic("EVENTOS","on animationStart","Se ejecuta cuando Animator comienza un AnimationClip.","on animationStart\n  ...\nend","""
+on animationStart
+  log "animación iniciada"
+end
+""","Disponible en entidades con Animator."),
+        topic("EVENTOS","on animationEnd","Se ejecuta al terminar un clip no cíclico.","on animationEnd\n  ...\nend","""
+on animationEnd
+  emit ataqueTerminado
+end
+""","Un clip en loop no termina hasta detenerse o cambiarse."),
+        topic("EVENTOS","on animationLoop","Se ejecuta al completar un ciclo de animación.","on animationLoop\n  ...\nend","""
+on animationLoop
+  log "nuevo ciclo"
+end
+""","Sirve para lógica sincronizada con ciclos completos."),
+        topic("EVENTOS","on animationEvent <nombre>","Escucha un marcador colocado sobre un frame de AnimationClip.","on animationEvent <nombre>\n  ...\nend","""
+on animationEvent footstep
+  emit paso
+end
+""","Úsalo para sincronizar golpes, sonidos, proyectiles y efectos con el frame exacto."),
+
         topic("FLUJO","if <ruta> <operador> <valor>","Condicional principal. Lee una ruta y la compara con un valor.","if <ruta> <op> <valor>\n  ...\nelse\n  ...\nend","""
 if Health.current <= 0
   destroy
@@ -222,6 +241,19 @@ ifPressed SPACE
   self.vy = -8
 end
 ""","Ideal para salto, ataque, abrir menú y acciones que no deben repetirse cada frame."),
+        topic("FLUJO","ifAction <acción>","Verdadero mientras cualquiera de los bindings de una acción del Input Map permanece activo.","ifAction <acción>\n  ...\nend","""
+ifAction MoveLeft
+  self.vx = -5
+end
+""","Preferible a ifKey para controles configurables."),
+        topic("FLUJO","ifActionPressed <acción>","Verdadero solamente cuando comienza una acción del Input Map.","ifActionPressed <acción>\n  ...\nend","""
+ifActionPressed Jump
+  if Rigidbody2D.grounded == true
+    self.vy = -8
+  end
+end
+""","Ideal para salto, ataque, interactuar y otras acciones de una sola pulsación."),
+
         topic("FLUJO","chance <0..1>","Ejecuta el bloque con una probabilidad entre 0 y 1.","chance <probabilidad>\n  ...\nend","""
 chance 0.25
   create premio
@@ -283,6 +315,15 @@ damage other 25
         topic("COMANDOS","heal","Cura una entidad con Health.","heal <entidad> <cantidad>","""
 heal self 20
 ""","No uses cantidades negativas para simular daño."),
+        topic("COMANDOS","spawnPrefab","Crea una instancia de un Prefab por clave y opcionalmente indica posición.","spawnPrefab <prefab> [x y]","""
+spawnPrefab slime
+spawnPrefab slime 12 5
+""","La instancia mantiene el vínculo lógico con la definición del Prefab."),
+        topic("COMANDOS","playAnimation / queueAnimation / stopAnimation","Control explícito de Animator desde 2GameScript.","playAnimation <clip|estado>\nqueueAnimation <clip|estado>\nstopAnimation","""
+playAnimation Walk
+queueAnimation Attack
+""","Los marcadores de frame llegan mediante on animationEvent <nombre>."),
+
         topic("COMANDOS","loadScene","Carga una escena por ID.","loadScene <id>","""
 loadScene bosque
 ""","El editor puede mostrar nombres, pero el runtime resuelve el ID almacenado."),
@@ -310,7 +351,7 @@ every 1 5 create humo
         topic("COMANDOS","showText FREE","Muestra texto libre, anclado a pantalla o entidad, con desaparición automática.","showText free <screen|entidad> <texto> <segundos>","""
 showText free screen "NIVEL 1" 3
 showText free self "-25" 1
-""","En 2.1.0 su estilo visual no es configurable; 2.2 introduce TextStyle."),
+""","Admite style <TextStyle> y color <#RRGGBB>; la apariencia base es editable desde el proyecto."),
         topic("COMANDOS","showText BUBBLE","Muestra un bocadillo que puede seguir a una entidad.","showText bubble <entidad> <texto> <segundos>","""
 showText bubble self "¡Alto!" 4
 ""","La duración efectiva está limitada a 10 segundos y siempre termina con fade."),
@@ -367,48 +408,77 @@ layer.visible = false
 layer.collision = false
 ""","Solo es la capa actual del script; no una celda individual."),
 
-        topic("COMPONENTES","GridMovement","Componente de movimiento discreto por grilla. Maneja input y desplazamiento por pasos.","enabled:boolean\nstep:number\nrepeatDelay:number\nmoveDuration:number\nallowDiagonal:boolean\nallowArrows:boolean\nsnap:boolean","""
+        topic("COMPONENTES","GridMovement","Movimiento discreto por grilla usando Input Map.","enabled:boolean\nstep:number\nrepeatDelay:number\nmoveDuration:number\nallowDiagonal:boolean\nallowArrows:boolean\nsnap:boolean","""
 GridMovement.step = 1
-GridMovement.allowDiagonal = false
 GridMovement.moveDuration = 0.10
-""","Respeta BoxCollider2D, tiles sólidos y capas físicas."),
-        topic("COMPONENTES","PlayerController","Componente de movimiento continuo preconstruido.","enabled:boolean\nspeed:number\nallowArrows:boolean","""
+""","Respeta colliders, tiles sólidos y capas físicas."),
+        topic("COMPONENTES","PlayerController","Movimiento continuo preconstruido en cuatro direcciones usando MoveLeft/MoveRight/MoveUp/MoveDown.","enabled:boolean\nspeed:number\nallowArrows:boolean","""
 PlayerController.speed = 5
-PlayerController.allowArrows = true
-""","Para controles de plataformas personalizados puede ser preferible manejar self.vx y dejar self.vy a Rigidbody2D."),
-        topic("COMPONENTES","Rigidbody2D","Componente de física básica: gravedad, masa, drag y límite de velocidad.","enabled:boolean\nmass:number\ngravityScale:number\ndrag:number\nmaxSpeed:number","""
+""","Para plataformas usa PlatformerController o control horizontal por script."),
+        topic("COMPONENTES","PlatformerController","Control horizontal y salto listo para plataformas. Usa Input Map y Rigidbody2D.grounded.","enabled:boolean\nspeed:number\njumpSpeed:number\nleftAction:string\nrightAction:string\njumpAction:string","""
+PlatformerController.speed = 5
+PlatformerController.jumpSpeed = 8
+PlatformerController.jumpAction = Jump
+""","Combínalo normalmente con Rigidbody2D y BoxCollider2D."),
+        topic("COMPONENTES","Rigidbody2D","Física básica, gravedad y sensores de contacto.","enabled:boolean\nmass:number\ngravityScale:number\ndrag:number\nmaxSpeed:number\nfreezeX:boolean\nfreezeY:boolean\ngrounded:boolean # solo lectura\ntouchingLeft:boolean # solo lectura\ntouchingRight:boolean # solo lectura\ntouchingTop:boolean # solo lectura","""
 Rigidbody2D.gravityScale = 1
-Rigidbody2D.drag = 0.2
-Rigidbody2D.maxSpeed = 12
-""","2.1.0 NO expone grounded/touchingLeft/touchingRight/touchingTop. No los uses todavía en scripts de 2.1.0."),
-        topic("COMPONENTES","BoxCollider2D","Collider rectangular para bloqueo físico entre entidades y contra el mundo.","enabled:boolean\nwidth:number\nheight:number\nsolid:boolean","""
+if Rigidbody2D.grounded == true
+  log "en suelo"
+end
+""","Los cuatro sensores de contacto son calculados por el runtime y no pueden escribirse desde 2GameScript."),
+        topic("COMPONENTES","BoxCollider2D","Collider rectangular sólido o no sólido con offset editable.","enabled:boolean\nwidth:number\nheight:number\noffsetX:number\noffsetY:number\nsolid:boolean","""
 BoxCollider2D.width = 0.8
 BoxCollider2D.height = 0.9
 BoxCollider2D.solid = true
 ""","No necesita Rigidbody2D para bloquear."),
+        topic("COMPONENTES","CircleCollider2D","Collider circular básico con radio y offset.","enabled:boolean\nradius:number\noffsetX:number\noffsetY:number\nsolid:boolean","""
+CircleCollider2D.radius = 0.45
+""","El runtime 2.2 usa su envolvente para resolución de contactos."),
+        topic("COMPONENTES","SpriteRenderer","Apariencia de una entidad: opacidad, flip y paleta.","enabled:boolean\nopacity:number\nflipX:boolean\nflipY:boolean\ntint:string\npalette:string","""
+SpriteRenderer.opacity = 0.8
+SpriteRenderer.flipX = true
+SpriteRenderer.palette = red
+""","El sprite base sigue siendo self.sprite; PaletteAsset permite recolorear sin duplicar la imagen."),
+        topic("COMPONENTES","Animator","Reproduce AnimationClip directamente o mediante AnimatorController.","enabled:boolean\ncontroller:string\nclip:string\nstate:string\nspeed:number\nflipX:boolean\nflipY:boolean\nframe:number\nfinished:boolean","""
+Animator.controller = hero-controller
+Animator.state = Walk
+Animator.speed = 1.25
+""","También existen playAnimation, queueAnimation, stopAnimation y eventos de animación."),
+        topic("COMPONENTES","Camera2D","Cámara 2D con objetivo, seguimiento, zoom, offset, pixel snap y prioridad.","enabled:boolean\ntarget:string\nfollow:boolean\nzoom:number\noffsetX:number\noffsetY:number\npixelSnap:boolean\npriority:number","""
+Camera2D.target = player
+Camera2D.zoom = 1.5
+Camera2D.pixelSnap = true
+""","La resolución lógica permanece independiente de la resolución física del monitor."),
+        topic("COMPONENTES","ParticleEmitter2D","Emisor que usa un ParticlePreset del proyecto.","enabled:boolean\npreset:string\nplaying:boolean","""
+ParticleEmitter2D.preset = sparks
+ParticleEmitter2D.playing = true
+""","El preset controla sprite, tasa, burst, vida, velocidad, dispersión, gravedad, escala y opacidad."),
+        topic("COMPONENTES","SortingGroup","Control de orden visual y Y-sort.","enabled:boolean\norder:number\nySort:boolean","""
+SortingGroup.ySort = true
+""","Útil para top-down y grupos visuales que deben conservar orden."),
         topic("COMPONENTES","Patrol","Movimiento automático de patrulla en un eje.","enabled:boolean\naxis:x|y\ndistance:number\nspeed:number","""
 Patrol.axis = x
 Patrol.distance = 6
 Patrol.speed = 2
-""","Útil para NPC/enemigos sencillos y plataformas móviles básicas."),
+""","Útil para enemigos sencillos y plataformas móviles básicas."),
         topic("COMPONENTES","ScenePortal","Transfiere al jugador a otra escena y posición.","enabled:boolean\ntargetScene:string\ntargetX:number\ntargetY:number","""
 ScenePortal.targetScene = bosque
 ScenePortal.targetX = 2
 ScenePortal.targetY = 3
-""","El objetivo se guarda internamente por escena."),
-        topic("COMPONENTES","Trigger","Zona de activación no necesariamente sólida.","enabled:boolean\nonce:boolean","""
+""","Se activa al contactar con una entidad controlada por jugador."),
+        topic("COMPONENTES","Trigger","Zona de activación con opción de una sola ejecución.","enabled:boolean\nonce:boolean","""
 Trigger.once = true
 ""","Usa on trigger para reaccionar."),
-        topic("COMPONENTES","Health","Estado de vida básico.","enabled:boolean\nmax:number\ncurrent:number","""
+        topic("COMPONENTES","Health","Vida actual y máxima.","enabled:boolean\nmax:number\ncurrent:number","""
 Health.max = 150
 Health.current = 150
 ""","damage/heal operan sobre este componente."),
         topic("COMPONENTES","DamageOnContact","Aplica daño al entrar en contacto.","enabled:boolean\ndamage:number","""
 DamageOnContact.damage = 20
 ""","El objetivo debe tener Health."),
-        topic("COMPONENTES","Clickable","Controla si una entidad recibe click/doubleClick.","enabled:boolean","""
+        topic("COMPONENTES","Clickable","Controla interacción por clic.","enabled:boolean","""
 Clickable.enabled = false
-""","Sin Clickable explícito, una entidad puede seguir siendo clicable según el comportamiento por defecto del runtime."),
+""","Afecta click y doubleClick."),
 
         topic("LEGACY","addComponent","Añade un componente a una entidad en runtime.","addComponent <entidad> <tipo>","""
 addComponent self Rigidbody2D
