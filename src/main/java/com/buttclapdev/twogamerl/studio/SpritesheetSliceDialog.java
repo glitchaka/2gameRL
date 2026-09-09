@@ -106,7 +106,7 @@ final class SpritesheetSliceDialog {
 
     private void redraw(){
         GraphicsContext g=canvas.getGraphicsContext2D();g.setImageSmoothing(false);g.clearRect(0,0,canvas.getWidth(),canvas.getHeight());g.drawImage(previewImage,0,0,canvas.getWidth(),canvas.getHeight());
-        for(int i=0;i<regions.size();i++){Region r=regions.get(i);double x=r.x*previewScale,y=r.y*previewScale,w=r.width*previewScale,h=r.height*previewScale;boolean on=selectedRegions.contains(i);if(on){g.setFill(Color.rgb(72,184,255,.22));g.fillRect(x,y,w,h);g.setStroke(Color.web("#7ed1ff"));g.setLineWidth(2);}else{g.setStroke(Color.rgb(255,255,255,.60));g.setLineWidth(1);}g.strokeRect(x+.5,y+.5,Math.max(1,w-1),Math.max(1,h-1));g.setFill(on?Color.web("#7ed1ff"):Color.WHITE);g.fillText(Integer.toString(i+1),x+4,y+12);}
+        for(int i=0;i<regions.size();i++){Region r=regions.get(i);double x=r.x*previewScale,y=r.y*previewScale,w=r.width*previewScale,h=r.height*previewScale;boolean on=selectedRegions.contains(i);if(on){g.setFill(Color.rgb(201,164,95,.22));g.fillRect(x,y,w,h);g.setStroke(Color.web("#d0ad68"));g.setLineWidth(2);}else{g.setStroke(Color.rgb(255,255,255,.60));g.setLineWidth(1);}g.strokeRect(x+.5,y+.5,Math.max(1,w-1),Math.max(1,h-1));g.setFill(on?Color.web("#d0ad68"):Color.WHITE);g.fillText(Integer.toString(i+1),x+4,y+12);}
     }
 
     private void accept(boolean all,Stage stage){
