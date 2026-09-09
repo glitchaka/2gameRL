@@ -1,9 +1,9 @@
 package com.buttclapdev.twogamerl.studio;
 
 import com.buttclapdev.twogamerl.model.GameProject;
-import com.buttclapdev.twogamerl.model.ResourceRef;
 import com.buttclapdev.twogamerl.runtime.GameView;
 import com.buttclapdev.twogamerl.runtime.ParticleRuntime222;
+import com.buttclapdev.twogamerl.runtime.RuntimeProject222;
 import javafx.collections.ListChangeListener;
 import javafx.scene.Node;
 import javafx.scene.Parent;
@@ -17,10 +17,7 @@ import javafx.scene.layout.StackPane;
 import javafx.stage.Stage;
 import javafx.stage.Window;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-import java.util.WeakHashMap;
+import java.util.*;
 
 final class StudioEnhancements {
     private static final String AUTOCOMPLETE="2rl.script.autocomplete";
@@ -37,7 +34,7 @@ final class StudioEnhancements {
 
     private static void installPlayOverride(Stage stage,StudioApp app){for(Button b:findAll(stage.getScene().getRoot(),Button.class))if("▶ Probar".equals(b.getText())){b.setOnAction(e->playPreview(app));b.setTooltip(new Tooltip("Probar en pantalla completa. F11 alterna pantalla completa; F10 cierra solo la prueba."));}}
     private static void playPreview(StudioApp app){
-        GameProject runtime=app.project().deepCopy();ResourceRef.installRuntimeAliases(runtime);Stage preview=new Stage();preview.getIcons().setAll(app.owner().getIcons());preview.setTitle("Probar · "+runtime.getTitle());GameView view=new GameView(runtime);ParticleRuntime222.attach(view);Scene scene=new Scene(view,Math.max(640,runtime.getLogicalWidth()*3),Math.max(360,runtime.getLogicalHeight()*3));var css=StudioEnhancements.class.getResource("/com/buttclapdev/twogamerl/studio.css");if(css!=null)scene.getStylesheets().add(css.toExternalForm());scene.addEventFilter(KeyEvent.KEY_PRESSED,e->{if(e.getCode()==KeyCode.F10){preview.close();e.consume();}else if(e.getCode()==KeyCode.F11){preview.setFullScreen(!preview.isFullScreen());e.consume();}});preview.setScene(scene);preview.setOnShown(e->{preview.setFullScreen(true);view.requestFocus();});preview.setOnHidden(e->view.stop());preview.show();app.status("Prueba en ejecución · F10 cerrar prueba · F11 pantalla completa.");
+        GameProject runtime=app.project().deepCopy();RuntimeProject222.prepare(runtime);Stage preview=new Stage();preview.getIcons().setAll(app.owner().getIcons());preview.setTitle("Probar · "+runtime.getTitle());GameView view=new GameView(runtime);ParticleRuntime222.attach(view);Scene scene=new Scene(view,Math.max(640,runtime.getLogicalWidth()*3),Math.max(360,runtime.getLogicalHeight()*3));var css=StudioEnhancements.class.getResource("/com/buttclapdev/twogamerl/studio.css");if(css!=null)scene.getStylesheets().add(css.toExternalForm());scene.addEventFilter(KeyEvent.KEY_PRESSED,e->{if(e.getCode()==KeyCode.F10){preview.close();e.consume();}else if(e.getCode()==KeyCode.F11){preview.setFullScreen(!preview.isFullScreen());e.consume();}});preview.setScene(scene);preview.setOnShown(e->{preview.setFullScreen(true);view.requestFocus();});preview.setOnHidden(e->view.stop());preview.show();app.status("Prueba en ejecución · F10 cerrar prueba · F11 pantalla completa.");
     }
 
     private static void installWorkspaceHooks(Stage stage,StudioApp app){if(!(stage.getScene().getRoot() instanceof BorderPane root))return;if(!(root.getCenter() instanceof StackPane workspace))return;Runnable installCurrent=()->{for(Node child:workspace.getChildren()){if(child instanceof GraphicsEditorPane pane){GraphicsBrowserEnhancements.install(pane,app);ParticleStudio222.install(pane,app);}if(child instanceof SceneEditorPane pane){SceneInspector222.install(pane,app);CameraViewport222.install(pane,app);}installScriptEditors(child,app);}};installCurrent.run();workspace.getChildren().addListener((ListChangeListener<Node>)c->installCurrent.run());}
