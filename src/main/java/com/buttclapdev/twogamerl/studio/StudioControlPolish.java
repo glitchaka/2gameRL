@@ -12,7 +12,7 @@ import java.util.*;
 /** Applies the desktop control language to dynamically-created Studio workspaces. */
 final class StudioControlPolish {
     private static final String INSTALLED="2rl.control.polish.rc4";
-    private static final Set<String> ICON_ONLY_TOOLS=Set.of("Selección","Dibujar","Rellenar","Borrar","Objeto");
+    private static final Set<String> SCENE_TOOLS=Set.of("Selección","Dibujar","Rellenar","Borrar","Objeto","Línea","Rectángulo","Cuentagotas","Stamp");
     private static final Map<String,String> ICONS=Map.ofEntries(
             Map.entry("Nuevo","M12 4v16M4 12h16"),Map.entry("Abrir","M3 7h7l2 2h9v10H3z"),Map.entry("Guardar","M4 3h14l2 2v16H4zM7 3v6h10V3M7 14h10v7H7z"),
             Map.entry("Configuración","M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8M12 2v3M12 19v3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M2 12h3M19 12h3M4.9 19.1 7 17M17 7l2.1-2.1"),
@@ -69,7 +69,7 @@ final class StudioControlPolish {
         if(Boolean.TRUE.equals(b.getProperties().get(INSTALLED)))return;String raw=b.getText()==null?"":b.getText().trim();if(raw.isBlank()||b.getStyleClass().contains("window-control"))return;
         String clean=raw.replace("＋","").replace("⚙","").replace("▶","").trim();String key=iconKey(clean);String path=ICONS.get(key);if(path==null){b.setText(humanizeVisibleConstants(clean));return;}
         SVGPath icon=new SVGPath();icon.setContent(path);icon.getStyleClass().add("studio-glyph");b.setGraphic(icon);b.getStyleClass().add("modern-command");
-        if(ICON_ONLY_TOOLS.contains(clean)){b.setText("");b.setTooltip(new Tooltip(clean));b.getStyleClass().add("scene-tool-button");}else{b.setText(humanizeVisibleConstants(clean));if(b.getTooltip()==null)b.setTooltip(new Tooltip(clean));}
+        b.setText(humanizeVisibleConstants(clean));if(b.getTooltip()==null)b.setTooltip(new Tooltip(clean));if(SCENE_TOOLS.contains(clean))b.getStyleClass().add("scene-tool-button");
         if(Set.of("Escena","Menús","Gráficos").contains(clean))b.getStyleClass().add("workspace-command");
         b.getProperties().put(INSTALLED,true);
     }

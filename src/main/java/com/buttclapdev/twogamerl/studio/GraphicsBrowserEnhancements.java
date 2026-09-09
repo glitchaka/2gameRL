@@ -14,6 +14,7 @@ final class GraphicsBrowserEnhancements {
     private GraphicsBrowserEnhancements(){}
 
     static void install(GraphicsEditorPane pane,StudioApp app){
+        if(findFirst(pane,AssetExplorerPane.class)!=null)return;
         if(Boolean.TRUE.equals(pane.getProperties().get(INSTALLED)))return;
         pane.getProperties().put(INSTALLED,true);
         VBox imageBox=findImageBox(pane);if(imageBox==null)return;

@@ -40,11 +40,11 @@
     -fx-border-color: rgba(201,164,95,.62);
 }
 .scene-tool-button {
-    -fx-min-width: 34; -fx-pref-width: 34; -fx-max-width: 34;
     -fx-min-height: 32; -fx-pref-height: 32;
-    -fx-padding: 5;
+    -fx-padding: 5 9;
     -fx-background-color: transparent;
     -fx-border-color: transparent;
+    -fx-graphic-text-gap: 6;
 }
 .scene-tool-button:hover { -fx-background-color: rgba(255,255,255,.07); }
 .scene-tool-button:selected { -fx-background-color: rgba(201,164,95,.16); -fx-border-color: rgba(201,164,95,.68); }
@@ -130,3 +130,12 @@
 .theme-graphite .modern-command:hover { -fx-background-color: rgba(255,255,255,.07); }
 .theme-graphite .primary-button { -fx-background-color: linear-gradient(to bottom,#d3b06d,#ad833e); -fx-border-color: #dfbf7b; -fx-text-fill: #17130d; }
 .theme-graphite .primary-button .studio-glyph { -fx-stroke: #17130d; }
+
+/* RC4 clarity pass -------------------------------------------------------- */
+.scene-command-area { -fx-background-color: rgba(0,0,0,.12); -fx-border-color: transparent transparent rgba(255,255,255,.07) transparent; }
+.scene-tools-row { -fx-spacing: 4; }
+.scene-options-row { -fx-background-color: rgba(255,255,255,.018); }
+.scene-tools-row .toggle-button { -fx-text-overrun: CLIP; -fx-min-width: -1; -fx-pref-width: -1; -fx-max-width: Infinity; }
+.scene-tools-row .scene-tool-button:selected { -fx-background-color: rgba(201,164,95,.17); -fx-border-color: rgba(201,164,95,.62); }
+.resource-details .table-row-cell { -fx-cell-size: 40px; }
+.resource-browser-split .split-pane-divider { -fx-padding: 0 0 0 1; }
