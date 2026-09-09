@@ -1,0 +1,33 @@
+name: Patch RC hitbox damage
+
+on:
+  push:
+    branches:
+      - 'release/2.3.0-rc1'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: "${{ github.event.head_commit.message == 'ci: apply RC hitbox damage fix' }}"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Prevent legacy body contact from duplicating frame hitbox damage
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('src/main/java/com/buttclapdev/twogamerl/runtime/GameView.java')
+          s=p.read_text(encoding='utf-8')
+          old='private void handleDamage(Body source,Body target){ComponentDef damage=activeComponent(source,"DamageOnContact"),health=activeComponent(target,"Health");if(damage==null||health==null)return;applyDamage(target,Math.max(0,damage.number("damage",10)),source);}'
+          new='private void handleDamage(Body source,Body target){ComponentDef damage=activeComponent(source,"DamageOnContact"),health=activeComponent(target,"Health");if(damage==null||health==null)return;if(!frameShapes(source,FrameShapeRole.HITBOX).isEmpty()&&!frameShapes(target,FrameShapeRole.HURTBOX).isEmpty())return;applyDamage(target,Math.max(0,damage.number("damage",10)),source);}'
+          if s.count(old)!=1: raise SystemExit(f'Expected one handleDamage implementation, found {s.count(old)}')
+          p.write_text(s.replace(old,new,1),encoding='utf-8',newline='\n')
+          PY
+          git config user.name "glitchaka"
+          git config user.email "82622846+glitchaka@users.noreply.github.com"
+          git add src/main/java/com/buttclapdev/twogamerl/runtime/GameView.java
+          git commit -m "fix: deduplicate animation hitbox damage"
+          git push origin HEAD:release/2.3.0-rc1
