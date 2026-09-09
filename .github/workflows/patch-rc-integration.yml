@@ -1,0 +1,47 @@
+name: Patch RC integration
+
+on:
+  push:
+    branches:
+      - 'release/2.3.0-rc1'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: "${{ github.event.head_commit.message == 'ci: apply RC integration compile fixes' }}"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply integration fixes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+
+          for name in [
+              'src/main/java/com/buttclapdev/twogamerl/studio/MenuEditorPane.java',
+              'src/main/java/com/buttclapdev/twogamerl/studio/RcFeaturePack.java'
+          ]:
+              p=Path(name)
+              s=p.read_text(encoding='utf-8')
+              needle='import com.buttclapdev.twogamerl.model.GameProject.*;\n'
+              explicit='import com.buttclapdev.twogamerl.model.GameProject.MenuButton;\n'
+              if explicit not in s:
+                  if needle not in s: raise SystemExit(f'Missing import anchor in {name}')
+                  s=s.replace(needle,needle+explicit,1)
+              p.write_text(s,encoding='utf-8',newline='\n')
+
+          p=Path('src/main/java/com/buttclapdev/twogamerl/studio/SceneEditorPane.java')
+          s=p.read_text(encoding='utf-8')
+          old='AdvancedTileResolver.assetFor(app.project(),l,layer,x,y)'
+          new='AdvancedTileResolver.assetFor(app.project(),l,layer,x,y,t)'
+          if s.count(old)!=1: raise SystemExit(f'Expected one assetFor legacy call, found {s.count(old)}')
+          p.write_text(s.replace(old,new,1),encoding='utf-8',newline='\n')
+          PY
+          git config user.name "glitchaka"
+          git config user.email "82622846+glitchaka@users.noreply.github.com"
+          git add src/main/java/com/buttclapdev/twogamerl/studio/MenuEditorPane.java src/main/java/com/buttclapdev/twogamerl/studio/RcFeaturePack.java src/main/java/com/buttclapdev/twogamerl/studio/SceneEditorPane.java
+          git commit -m "fix: resolve RC studio integration compile errors"
+          git push origin HEAD:release/2.3.0-rc1
