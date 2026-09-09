@@ -15,85 +15,121 @@ import javafx.stage.Stage;
 import javafx.stage.StageStyle;
 import javafx.stage.Window;
 
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 import java.util.function.Consumer;
 
+/** Tutorial y referencia integrada de 2GameScript. */
 final class ScriptTutorialDialog {
-    private record Lesson(String title,String explanation,String code,String note){@Override public String toString(){return title;}}
-    private static final List<Lesson>LESSONS=List.of(
-        lesson("1 · Eventos y contextos","2GameScript puede vivir en una entidad, una capa de tiles o la escena. Todos usan on...end.","""
+    private record Topic(String group,String title,String definition,String syntax,String example,String notes){
+        @Override public String toString(){return title;}
+        String searchable(){return (group+" "+title+" "+definition+" "+syntax+" "+example+" "+notes).toLowerCase(Locale.ROOT);}
+    }
+
+    private static Topic topic(String group,String title,String definition,String syntax,String example,String notes){
+        return new Topic(group,title,definition,syntax,example,notes);
+    }
+
+    private static final List<Topic>TOPICS=List.of(
+        topic("GUÍAS","00 · Cómo funciona 2GameScript","2GameScript es el lenguaje propio de 2gameRL. Un script pertenece a una entidad, una capa o una escena y siempre ejecuta instrucciones dentro de eventos.","on <evento>\n  <instrucciones>\nend","""
 on start
-  log "iniciado"
+  log "El script comenzó"
 end
 
 on update
-  # cada frame
+  # se ejecuta cada frame
 end
-""","Entidades además reciben click, doubleClick, collision, trigger y destroy."),
-        lesson("2 · Sintaxis de propiedades","2.1.0 incorpora asignación directa por rutas. La sintaxis antigua sigue siendo compatible.","""
-on click
-  Rigidbody2D.gravityScale = -1
-  Rigidbody2D.maxSpeed += 2
-  Health.current -= 10
-  self.x += 1
+""","No es Java, JavaScript, Lua ni Python. Los comandos, rutas y componentes documentados aquí son la API del motor."),
+        topic("GUÍAS","01 · WASD libre","Movimiento manual continuo usando vx/vy. A y D controlan X; W y S controlan Y. Es útil cuando no quieres GridMovement.","self.vx = <velocidad>\nself.vy = <velocidad>\nifKey <TECLA> ... end","""
+on update
+  self.vx = 0
+  self.vy = 0
+
+  ifKey A
+    self.vx = -5
+  end
+  ifKey D
+    self.vx = 5
+  end
+  ifKey W
+    self.vy = -5
+  end
+  ifKey S
+    self.vy = 5
+  end
 end
-""","También existen *= y /=. Ejemplo útil: Rigidbody2D.gravityScale *= -1."),
-        lesson("3 · Otras entidades","self es la entidad actual y other la contraparte de collision/trigger. También puedes usar ID o nombre.","""
-on collision
-  other.Health.current -= 25
-  other.sprite = enemigo_golpeado
-  enemigo.Rigidbody2D.gravityScale = 0
-end
-""","damage/heal siguen disponibles cuando quieres semántica de daño en vez de una asignación cruda."),
-        lesson("4 · Movimiento por losetas","GridMovement es configurable por objeto; PlayerController mantiene movimiento libre.","""
+""","Necesitas BoxCollider2D si quieres bloqueo contra sólidos. Si además usas Rigidbody2D con gravedad, no pongas self.vy = 0 cada frame porque cancelarías la gravedad."),
+        topic("GUÍAS","02 · Plataformas: A/D + gravedad + salto","En un plataformas el jugador controla X, mientras Rigidbody2D controla Y mediante gravedad. El salto consiste en dar una velocidad Y negativa una sola vez.","Rigidbody2D.gravityScale = 1\nself.vx = ...\nself.vy = -<fuerzaSalto>","""
 on start
+  Rigidbody2D.gravityScale = 1
+end
+
+on update
+  self.vx = 0
+
+  ifKey A
+    self.vx = -5
+  end
+  ifKey D
+    self.vx = 5
+  end
+
+  ifPressed SPACE
+    self.vy = -8
+  end
+end
+""","IMPORTANTE: 2.1.0 todavía no expone Rigidbody2D.grounded. Este ejemplo permite volver a saltar en el aire si se pulsa SPACE otra vez. La referencia lo marca como limitación; 2.2 debe exponer grounded/touching para un salto de plataformas correcto."),
+        topic("GUÍAS","03 · Movimiento por cuadrícula","GridMovement implementa movimiento discreto por casillas y ya escucha WASD; opcionalmente también flechas.","GridMovement.<propiedad> = <valor>","""
+on start
+  GridMovement.enabled = true
   GridMovement.step = 1
+  GridMovement.allowArrows = true
+  GridMovement.allowDiagonal = false
   GridMovement.repeatDelay = 0.16
   GridMovement.moveDuration = 0.10
-  GridMovement.allowDiagonal = false
   GridMovement.snap = true
 end
-""","BoxCollider2D bloquea GridMovement y no necesita Rigidbody2D."),
-        lesson("5 · Variables, globales y guardado","global.* dura mientras corre el juego. save.* usa SQLite y sobrevive al cerrar el juego.","""
+""","No escribas ifKey W/A/S/D si GridMovement ya debe encargarse del control. BoxCollider2D y las capas físicas resuelven el bloqueo."),
+        topic("GUÍAS","04 · Clic que invierte gravedad","Ejemplo mínimo de asignación matemática sobre un componente.","Rigidbody2D.gravityScale *= -1","""
+on start
+  Rigidbody2D.gravityScale = 1
+end
+
+on click
+  Rigidbody2D.gravityScale *= -1
+end
+""","*= -1 cambia 1 a -1 y -1 a 1."),
+        topic("GUÍAS","05 · Colisión, daño y other","Dentro de collision/trigger, other representa la otra entidad participante.","on collision ... end\ndamage <entidad> <cantidad>","""
+on collision
+  damage other 10
+  showText free other "-10" 1
+end
+""","damage expresa intención de gameplay. También existe other.Health.current -= 10 si quieres editar la propiedad directamente."),
+        topic("GUÍAS","06 · Variables globales y guardado","global.* vive durante la ejecución actual. save.* persiste entre ejecuciones mediante SQLite.","global.<nombre> = <valor>\nsave.<nombre> = <valor>","""
 on start
   global.score = 0
   save.nombre = "Adarvio"
+end
+
+on event moneda
+  global.score += 10
   save.monedas += 1
-  log "Guardado: ${save:nombre}"
 end
-""","Cada juego exportado guarda su base en la carpeta local de datos del usuario."),
-        lesson("6 · Condiciones intuitivas","if acepta rutas además de los comandos ifVar/ifGlobal heredados.","""
-on click
-  if save.llaveRoja == true
-    BoxCollider2D.enabled = false
-  else
-    showText bubble self "Está cerrada" 3
-  end
-end
-""","Operadores: == != > >= < <= contains startsWith endsWith."),
-        lesson("7 · wait, timer y every","wait pausa solo la secuencia. timer agenda una acción y continúa. every repite una acción N veces.","""
-on click
-  destroy
-  wait 9
-  create pj
-end
-
-on start
-  timer 2 create explosion
-  every 1 5 create humo
-end
-""","Ninguno de estos comandos congela el juego."),
-        lesson("8 · Señales entre sistemas","emit publica una señal. Cualquier script de escena, capa o entidad puede escucharla con on event.","""
+""","El creador del juego no escribe SQL; save.* es la API pública de persistencia."),
+        topic("GUÍAS","07 · Señales entre scripts","emit permite comunicar entidad, capa y escena sin crear objetos invisibles de coordinación.","emit <nombre>\non event <nombre> ... end","""
+# En una llave
 on trigger
-  emit entroAlTemplo
+  save.llaveRoja = true
+  emit llaveRojaObtenida
+  destroy
 end
 
-on event jefeMuerto
-  showText free screen "VICTORIA" 4
+# En una puerta
+on event llaveRojaObtenida
+  BoxCollider2D.enabled = false
+  self.sprite = puerta_abierta
 end
-""","Esto evita crear entidades invisibles solo para coordinar lógica global."),
-        lesson("9 · Script de escena","Selecciona ESCENA > Propiedades y script. Puede controlar fondo, límites, señales, oleadas y estado global.","""
+""","La señal se distribuye en la escena actual."),
+        topic("GUÍAS","08 · Script de escena","La escena puede controlar fondo, límites, temporizadores, señales y lógica de nivel.","scene.<propiedad> = <valor>","""
 on start
   timer 30 emit anochecer
 end
@@ -103,68 +139,400 @@ on event anochecer
   scene.backgroundMode = cover
   showText free screen "ANOCHECE" 4
 end
-""","También: scene.boundary.left/right/top/bottom = true|false."),
-        lesson("10 · Script de capa","Selecciona una capa de tiles y abre Script. Las capas pueden reaccionar a señales.","""
+""","Selecciona ESCENA > Propiedades y script."),
+        topic("GUÍAS","09 · Script de capa","Una capa de tiles puede reaccionar a señales y modificar visibilidad/colisión sin crear entidades.","layer.<propiedad> = <valor>","""
 on event descongelar
-  layer.enabled = false
+  layer.visible = false
   layer.collision = false
 end
-""","layer.visible/enabled, locked, collision, physicsLayer y renderLayer son modificables."),
-        lesson("11 · Texto libre","FREE sirve para títulos, avisos y texto flotante. Siempre se desvanece.","""
+""","El script de capa afecta a la capa completa, no a una celda individual."),
+        topic("GUÍAS","10 · Texto FREE, BUBBLE y NOVEL","2GameScript tiene tres soportes de texto en pantalla.","showText <free|bubble|novel> ...","""
+showText free screen "NIVEL 1" 3
+showText bubble self "¿Qué fue eso?" 4
+showText novel Diego "No deberíamos estar aquí." click
+""","En 2.1.0 los estilos visuales todavía están fijados por el runtime; 2.2 los moverá a TextStyle editable."),
+        topic("GUÍAS","11 · Temporizadores e iteraciones","wait pausa una secuencia; timer agenda una acción; every repite temporalmente; repeat repite inmediatamente.","wait <s>\ntimer <s> <comando>\nevery <s> <cantidad> <comando>\nrepeat <cantidad> ... end","""
 on start
-  showText free screen "NIVEL 1" 3
-end
+  timer 2 create explosion
+  every 1 5 create humo
 
-on collision
-  showText free self "-25" 1.5
+  repeat 3
+    create chispa
+  end
 end
-""","Si usas self/other/ID/nombre, el texto sigue a la entidad mientras se mueve."),
-        lesson("12 · Bocadillos","BUBBLE es diálogo tipo cómic y sigue a una entidad. Su duración está limitada a 10 segundos.","""
-on click
-  showText bubble self "¿Qué demonios fue eso?" 4
-end
+""","wait/timer/every no congelan el juego completo."),
 
-on collision
-  showText bubble other "¡Eh!" 2
+        topic("EVENTOS","on start","Evento ejecutado al iniciar la instancia/script.","on start\n  ...\nend","""
+on start
+  Health.current = 100
 end
-""","El motor fuerza fade-out; no puede quedar un bocadillo permanente."),
-        lesson("13 · Novela visual","NOVEL dibuja una banda de diálogo. Puede cerrarse por clic, tecla o tiempo.","""
+""","Disponible en entidad, capa y escena."),
+        topic("EVENTOS","on update","Evento ejecutado continuamente durante la actualización del juego.","on update\n  ...\nend","""
+on update
+  ifKey D
+    self.vx = 5
+  end
+end
+""","Úsalo para input continuo y lógica por frame. Evita trabajo pesado innecesario."),
+        topic("EVENTOS","on click","Evento al hacer clic sobre una entidad clicable.","on click\n  ...\nend","""
 on click
-  showText novel Diego "No deberíamos estar aquí." click
-  wait 1
-  showText novel Alessandra "Entonces no mires atrás." key SPACE
+  showText bubble self "Hola" 3
 end
-""","También: showText novel Narrador " + "\"Texto\" 30 para cierre automático."),
-        lesson("14 · Crear y controlar entidades","create/spawn clona una plantilla. Los comandos legacy remotos siguen funcionando.","""
-on event oleada
-  create enemigo 12 8
-  setEntity enemigo physicsLayer Enemy
-  addComponent enemigo Health
-  setComponent enemigo Health current 50
+""","Clickable.enabled=false puede impedir la interacción."),
+        topic("EVENTOS","on doubleClick","Evento de doble clic sobre una entidad.","on doubleClick\n  ...\nend","""
+on doubleClick
+  emit inspeccionProfunda
 end
-""","create sin coordenadas usa la posición de la entidad ejecutora o la de la plantilla en scripts globales."),
-        lesson("15 · Referencia rápida","La forma recomendada es la sintaxis con puntos; los comandos 2.0.x siguen aceptados.","""
-# propiedades
-Rigidbody2D.gravityScale *= -1
+""","Principalmente útil en entidades."),
+        topic("EVENTOS","on collision","Se dispara al comenzar una colisión física; puede exponer other.","on collision\n  ...\nend","""
+on collision
+  damage other 10
+end
+""","No equivale a ejecutar cada frame mientras ambos permanecen solapados."),
+        topic("EVENTOS","on trigger","Se dispara al entrar en un Trigger; puede exponer other.","on trigger\n  ...\nend","""
+on trigger
+  emit entroZona
+end
+""","Trigger.once permite limitar activaciones."),
+        topic("EVENTOS","on destroy","Se ejecuta antes de retirar una entidad destruida.","on destroy\n  ...\nend","""
+on destroy
+  create explosion
+end
+""","Útil para efectos, loot y señales."),
+        topic("EVENTOS","on event <nombre>","Escucha una señal nombrada emitida con emit.","on event alarma\n  ...\nend","""
+on event alarma
+  showText free screen "ALARMA" 2
+end
+""","Puede existir en entidades, capas y escena."),
+
+        topic("FLUJO","if <ruta> <operador> <valor>","Condicional principal. Lee una ruta y la compara con un valor.","if <ruta> <op> <valor>\n  ...\nelse\n  ...\nend","""
+if Health.current <= 0
+  destroy
+else
+  log "sigue vivo"
+end
+""","Operadores: ==, =, !=, >, >=, <, <=, contains, startsWith, endsWith."),
+        topic("FLUJO","ifKey <tecla>","Verdadero mientras la tecla permanece pulsada.","ifKey <tecla>\n  ...\nend","""
+ifKey A
+  self.vx = -5
+end
+""","Ideal para movimiento continuo."),
+        topic("FLUJO","ifPressed <tecla>","Verdadero solamente en la transición de tecla no pulsada a pulsada.","ifPressed <tecla>\n  ...\nend","""
+ifPressed SPACE
+  self.vy = -8
+end
+""","Ideal para salto, ataque, abrir menú y acciones que no deben repetirse cada frame."),
+        topic("FLUJO","chance <0..1>","Ejecuta el bloque con una probabilidad entre 0 y 1.","chance <probabilidad>\n  ...\nend","""
+chance 0.25
+  create premio
+end
+""","0.25 equivale a 25 %."),
+        topic("FLUJO","repeat <cantidad>","Repite inmediatamente un bloque una cantidad fija de veces.","repeat <cantidad>\n  ...\nend","""
+repeat 3
+  create chispa
+end
+""","Límite de seguridad: 10.000 repeticiones."),
+        topic("FLUJO","stop / return","Finaliza la ejecución del evento actual.","stop\nreturn","""
+if save.pausa == true
+  return
+end
+""","Ambos cumplen la misma función de corte de la secuencia actual."),
+
+        topic("COMANDOS","log / print","Escribe texto en el log del runtime/editor.","log <texto>\nprint <texto>","""
+log "X=${prop:x}"
+""","No dibuja texto en pantalla; para eso usa showText."),
+        topic("COMANDOS","move","Desplaza la entidad actual de forma relativa.","move <dx> <dy>","""
+move 1 0
+""","Usa unidades lógicas del mundo."),
+        topic("COMANDOS","velocity","Asigna vx y vy de la entidad actual.","velocity <vx> <vy>","""
+velocity 5 -8
+""","Equivale conceptualmente a establecer la velocidad completa de una vez."),
+        topic("COMANDOS","teleport","Coloca la entidad actual en coordenadas absolutas.","teleport <x> <y>","""
+teleport 8 4
+""","No es un desplazamiento relativo."),
+        topic("COMANDOS","bounce","Invierte vx y vy de la entidad actual.","bounce","""
+on collision
+  bounce
+end
+""","Útil para proyectiles o rebotes simples."),
+        topic("COMANDOS","create / spawn","Clona una entidad plantilla de la escena.","create <plantilla> [x y]\nspawn <plantilla> [x y]","""
+create enemigo
+create enemigo 12 8
+""","La copia recibe un ID runtime único."),
+        topic("COMANDOS","destroy","Destruye la entidad que ejecuta el script.","destroy","""
+on trigger
+  destroy
+end
+""","Dispara on destroy antes de retirarla."),
+        topic("COMANDOS","destroyEntity","Destruye otra entidad por referencia.","destroyEntity <entidad>","""
+destroyEntity other
+""","La referencia puede ser other, ID o nombre."),
+        topic("COMANDOS","moveEntity","Mueve otra entidad relativamente.","moveEntity <entidad> <dx> <dy>","""
+moveEntity enemigo 1 0
+""","Comando legacy/remoto; las rutas directas son preferibles para propiedades."),
+        topic("COMANDOS","teleportEntity","Teletransporta otra entidad.","teleportEntity <entidad> <x> <y>","""
+teleportEntity enemigo 10 4
+""","Referencia por ID o nombre."),
+        topic("COMANDOS","setSprite / setEntitySprite","Cambia el sprite de self u otra entidad.","setSprite <asset>\nsetEntitySprite <entidad> <asset>","""
 self.sprite = hero_idle
-global.score += 100
-save.monedas += 1
-scene.background = noche
-layer.enabled = false
-
-# flujo
-emit alarma
-wait 1
-timer 2 create fx
+other.sprite = enemigo_hit
+""","La sintaxis por rutas es la recomendada en 2.1+."),
+        topic("COMANDOS","damage","Aplica daño semántico a una entidad con Health.","damage <entidad> <cantidad>","""
+damage other 25
+""","Preferible a editar Health.current cuando quieres expresar daño."),
+        topic("COMANDOS","heal","Cura una entidad con Health.","heal <entidad> <cantidad>","""
+heal self 20
+""","No uses cantidades negativas para simular daño."),
+        topic("COMANDOS","loadScene","Carga una escena por ID.","loadScene <id>","""
+loadScene bosque
+""","El editor puede mostrar nombres, pero el runtime resuelve el ID almacenado."),
+        topic("COMANDOS","restartScene","Recarga la escena actual.","restartScene","""
+on destroy
+  restartScene
+end
+""","Reinicia el nivel actual."),
+        topic("COMANDOS","showMenu","Abre una pantalla de menú por ID.","showMenu <id>","""
+showMenu pausa
+""","Útil para pausa, inventario o pantallas propias."),
+        topic("COMANDOS","emit","Publica una señal nombrada.","emit <evento>","""
+emit jefeMuerto
+""","Los listeners usan on event <nombre>."),
+        topic("COMANDOS","wait","Pausa solamente la secuencia actual y la reanuda después.","wait <segundos>","""
+wait 2
+create enemigo
+""","No bloquea render, input, física ni otros scripts."),
+        topic("COMANDOS","timer","Agenda un comando para más tarde y continúa inmediatamente.","timer <segundos> <comando>","""
+timer 2 create explosion
+""","El comando anidado debe ser una instrucción normal; no puede ser wait/every."),
+        topic("COMANDOS","every","Ejecuta un comando N veces separado por un intervalo.","every <segundos> <cantidad> <comando>","""
 every 1 5 create humo
+""","Máximo 10.000 repeticiones."),
+        topic("COMANDOS","showText FREE","Muestra texto libre, anclado a pantalla o entidad, con desaparición automática.","showText free <screen|entidad> <texto> <segundos>","""
+showText free screen "NIVEL 1" 3
+showText free self "-25" 1
+""","En 2.1.0 su estilo visual no es configurable; 2.2 introduce TextStyle."),
+        topic("COMANDOS","showText BUBBLE","Muestra un bocadillo que puede seguir a una entidad.","showText bubble <entidad> <texto> <segundos>","""
+showText bubble self "¡Alto!" 4
+""","La duración efectiva está limitada a 10 segundos y siempre termina con fade."),
+        topic("COMANDOS","showText NOVEL","Muestra banda tipo novela visual con cierre por clic, tecla o tiempo.","showText novel <hablante> <texto> click\nshowText novel <hablante> <texto> key <TECLA>\nshowText novel <hablante> <texto> <segundos>","""
+showText novel Diego "No deberíamos estar aquí." click
+showText novel Alessandra "Mira atrás." key SPACE
+""","Puede permanecer más de 10 segundos o esperar interacción."),
 
-# texto
-showText free screen "TÍTULO" 3
-showText bubble self "Hola" 4
-showText novel Diego "Texto" click
-""","La Biblia completa y canónica está en docs/SCRIPTING.md.")
+        topic("ASIGNACIONES","=","Asigna un valor a una ruta.","<ruta> = <valor>","""
+Rigidbody2D.gravityScale = 1
+self.vx = 5
+save.nombre = "Diego"
+""","La ruta debe ser reconocida por el contexto/runtime."),
+        topic("ASIGNACIONES","+=","Suma numéricamente; si no son números, concatena texto.","<ruta> += <valor>","""
+global.score += 100
+""","Para valores numéricos realiza suma real."),
+        topic("ASIGNACIONES","-=","Resta un valor numérico.","<ruta> -= <valor>","""
+Health.current -= 10
+""","Requiere valores convertibles a número."),
+        topic("ASIGNACIONES","*=","Multiplica un valor numérico.","<ruta> *= <valor>","""
+Rigidbody2D.gravityScale *= -1
+""","Útil para invertir signos."),
+        topic("ASIGNACIONES","/=","Divide un valor numérico.","<ruta> /= <valor>","""
+global.factor /= 2
+""","Una división por cero conserva el valor previo en la implementación actual."),
+
+        topic("RUTAS","self.*","Propiedades de la entidad que ejecuta el script.","self.x | y | width | height | enabled | layer | group | renderLayer | physicsLayer | sprite | vx | vy","""
+self.x = 4
+self.sprite = hero_idle
+self.vx = -5
+""","En componentes de self puede omitirse self: Rigidbody2D.gravityScale = 1."),
+        topic("RUTAS","other.*","Accede a la entidad contraparte de collision/trigger.","other.<propiedad>\nother.<Componente>.<propiedad>","""
+other.Health.current -= 25
+other.sprite = enemigo_hit
+""","Solo tiene sentido cuando el evento proporciona other."),
+        topic("RUTAS","<entidad>.*","Acceso remoto por ID o nombre.","<idONombre>.<propiedad>\n<idONombre>.<Componente>.<propiedad>","""
+enemigo.x = 12
+enemigo.Rigidbody2D.gravityScale = 0
+""","El runtime intenta resolver primero las referencias disponibles de la escena."),
+        topic("RUTAS","global.*","Variables globales de sesión.","global.<nombre>","""
+global.score = 0
+global.score += 10
+""","Se pierden al cerrar el juego."),
+        topic("RUTAS","save.*","Valores persistentes del juego respaldados por SQLite.","save.<nombre>","""
+save.nombre = "Adarvio"
+save.monedas += 1
+""","Persisten entre ejecuciones."),
+        topic("RUTAS","scene.*","Propiedades del nivel/escena actual.","scene.name\nscene.background\nscene.backgroundMode\nscene.boundary.left|right|top|bottom","""
+scene.background = bosque_noche
+scene.backgroundMode = cover
+""","backgroundMode: color, stretch, cover, contain, tile."),
+        topic("RUTAS","layer.*","Propiedades de la capa que posee el script.","layer.name\nlayer.enabled\nlayer.visible\nlayer.locked\nlayer.collision\nlayer.physicsLayer\nlayer.renderLayer","""
+layer.visible = false
+layer.collision = false
+""","Solo es la capa actual del script; no una celda individual."),
+
+        topic("COMPONENTES","GridMovement","Componente de movimiento discreto por grilla. Maneja input y desplazamiento por pasos.","enabled:boolean\nstep:number\nrepeatDelay:number\nmoveDuration:number\nallowDiagonal:boolean\nallowArrows:boolean\nsnap:boolean","""
+GridMovement.step = 1
+GridMovement.allowDiagonal = false
+GridMovement.moveDuration = 0.10
+""","Respeta BoxCollider2D, tiles sólidos y capas físicas."),
+        topic("COMPONENTES","PlayerController","Componente de movimiento continuo preconstruido.","enabled:boolean\nspeed:number\nallowArrows:boolean","""
+PlayerController.speed = 5
+PlayerController.allowArrows = true
+""","Para controles de plataformas personalizados puede ser preferible manejar self.vx y dejar self.vy a Rigidbody2D."),
+        topic("COMPONENTES","Rigidbody2D","Componente de física básica: gravedad, masa, drag y límite de velocidad.","enabled:boolean\nmass:number\ngravityScale:number\ndrag:number\nmaxSpeed:number","""
+Rigidbody2D.gravityScale = 1
+Rigidbody2D.drag = 0.2
+Rigidbody2D.maxSpeed = 12
+""","2.1.0 NO expone grounded/touchingLeft/touchingRight/touchingTop. No los uses todavía en scripts de 2.1.0."),
+        topic("COMPONENTES","BoxCollider2D","Collider rectangular para bloqueo físico entre entidades y contra el mundo.","enabled:boolean\nwidth:number\nheight:number\nsolid:boolean","""
+BoxCollider2D.width = 0.8
+BoxCollider2D.height = 0.9
+BoxCollider2D.solid = true
+""","No necesita Rigidbody2D para bloquear."),
+        topic("COMPONENTES","Patrol","Movimiento automático de patrulla en un eje.","enabled:boolean\naxis:x|y\ndistance:number\nspeed:number","""
+Patrol.axis = x
+Patrol.distance = 6
+Patrol.speed = 2
+""","Útil para NPC/enemigos sencillos y plataformas móviles básicas."),
+        topic("COMPONENTES","ScenePortal","Transfiere al jugador a otra escena y posición.","enabled:boolean\ntargetScene:string\ntargetX:number\ntargetY:number","""
+ScenePortal.targetScene = bosque
+ScenePortal.targetX = 2
+ScenePortal.targetY = 3
+""","El objetivo se guarda internamente por escena."),
+        topic("COMPONENTES","Trigger","Zona de activación no necesariamente sólida.","enabled:boolean\nonce:boolean","""
+Trigger.once = true
+""","Usa on trigger para reaccionar."),
+        topic("COMPONENTES","Health","Estado de vida básico.","enabled:boolean\nmax:number\ncurrent:number","""
+Health.max = 150
+Health.current = 150
+""","damage/heal operan sobre este componente."),
+        topic("COMPONENTES","DamageOnContact","Aplica daño al entrar en contacto.","enabled:boolean\ndamage:number","""
+DamageOnContact.damage = 20
+""","El objetivo debe tener Health."),
+        topic("COMPONENTES","Clickable","Controla si una entidad recibe click/doubleClick.","enabled:boolean","""
+Clickable.enabled = false
+""","Sin Clickable explícito, una entidad puede seguir siendo clicable según el comportamiento por defecto del runtime."),
+
+        topic("LEGACY","addComponent","Añade un componente a una entidad en runtime.","addComponent <entidad> <tipo>","""
+addComponent self Rigidbody2D
+""","Sintaxis legacy válida; los componentes del Inspector son preferibles cuando son permanentes."),
+        topic("LEGACY","removeComponent","Quita un componente.","removeComponent <entidad> <tipo>","""
+removeComponent self Patrol
+""","La entidad deja de tener ese comportamiento."),
+        topic("LEGACY","setComponent","Modifica una propiedad de componente.","setComponent <entidad> <tipo> <propiedad> <valor>","""
+setComponent self Rigidbody2D gravityScale -1
+""","Forma recomendada moderna: Rigidbody2D.gravityScale = -1."),
+        topic("LEGACY","enableComponent","Activa/desactiva un componente sin eliminarlo.","enableComponent <entidad> <tipo> <true|false>","""
+enableComponent self BoxCollider2D false
+""","Forma moderna: BoxCollider2D.enabled = false."),
+        topic("LEGACY","setVar / addVar / mulVar / divVar / randomVar","API de variables locales legacy.","setVar <nombre> <valor>\naddVar <nombre> <n>\nmulVar <nombre> <n>\ndivVar <nombre> <n>\nrandomVar <nombre> <min> <max>","""
+setVar vida 10
+addVar vida -1
+randomVar suerte 1 100
+""","Se mantiene por compatibilidad."),
+        topic("LEGACY","setGlobal / addGlobal","API global legacy.","setGlobal <nombre> <valor>\naddGlobal <nombre> <n>","""
+setGlobal score 0
+addGlobal score 10
+""","Forma moderna: global.score = 0 / global.score += 10."),
+        topic("LEGACY","set / setEntity","Modifica propiedades de entidad con sintaxis 2.0.x.","set <propiedad> <valor>\nsetEntity <entidad> <propiedad> <valor>","""
+set x 4
+setEntity enemigo enabled false
+""","Forma moderna: self.x = 4 / enemigo.enabled = false."),
+        topic("LEGACY","setEntityVar / addEntityVar","Modifica variables locales de otra entidad.","setEntityVar <entidad> <nombre> <valor>\naddEntityVar <entidad> <nombre> <n>","""
+setEntityVar enemigo estado alerta
+addEntityVar enemigo furia 5
+""","Se mantiene por compatibilidad."),
+        topic("LEGACY","ifVar / ifGlobal / ifProperty","Condicionales legacy por ámbito.","ifVar <nombre> <op> <valor>\nifGlobal <nombre> <op> <valor>\nifProperty <propiedad> <op> <valor>","""
+ifGlobal score >= 100
+  log "ganó"
+end
+""","Forma moderna: if global.score >= 100."),
+        topic("LEGACY","ifEntity","Comprueba existencia de entidad.","ifEntity <entidad> <exists|missing>","""
+ifEntity jefe missing
+  emit victoria
+end
+""","Útil cuando la referencia puede no existir."),
+        topic("LEGACY","ifComponent","Comprueba existencia/estado de componente.","ifComponent <entidad> <tipo> [exists|missing|enabled|disabled]","""
+ifComponent self Health enabled
+  log "Health activo"
+end
+""","No compara propiedades arbitrarias; para eso usa if <ruta> <op> <valor>."),
+        topic("LEGACY","ifOther","Comprueba si el evento tiene una contraparte other válida.","ifOther\n  ...\nend","""
+ifOther
+  damage other 10
+end
+""","Principalmente collision/trigger."),
+
+        topic("REFERENCIA","Interpolación","Inserta valores dentro de texto.","${variable}\n${global:nombre}\n${save:nombre}\n${prop:x}\n${path:Rigidbody2D.gravityScale}\n${other}","""
+log "X=${prop:x}, gravedad=${path:Rigidbody2D.gravityScale}"
+showText free screen "Puntos: ${global:score}" 2
+""","La interpolación no convierte automáticamente todos los argumentos numéricos de comandos en expresiones."),
+        topic("REFERENCIA","Operadores de comparación","Operadores válidos para if y condiciones legacy.","==  =  !=  >  >=  <  <=  contains  startsWith  endsWith","""
+if save.nombre contains "Ada"
+  log "coincide"
+end
+""","Cuando ambos operandos son numéricos se comparan numéricamente; de lo contrario como texto."),
+        topic("REFERENCIA","Limitaciones actuales","Lista de cosas que NO debes asumir que existen en 2GameScript 2.1.x.","No hay: for arbitrario, while, funciones de usuario, clases de usuario, imports, &&, ||, SQL directo, Rigidbody2D.grounded.","""
+# Esto NO es válido en 2.1.x:
+# while true
+# if a && b
+# function saltar()
+# if Rigidbody2D.grounded == true
+""","La referencia debe distinguir capacidades reales de funciones planificadas para evitar ejemplos falsos.")
     );
-    private static Lesson lesson(String a,String b,String c,String d){return new Lesson(a,b,c,d);}private ScriptTutorialDialog(){}static void show(Window owner){show(owner,null);}
-    static void show(Window owner,Consumer<String>insertHandler){Stage stage=new Stage(StageStyle.UNDECORATED);if(owner!=null)stage.initOwner(owner);stage.initModality(Modality.NONE);stage.setTitle("Tutorial de scripting · 2gameRL");stage.setMinWidth(820);stage.setMinHeight(560);BorderPane root=new BorderPane();root.getStyleClass().addAll("studio-root","window-frame","tutorial-window");root.setTop(titleBar(stage));ObservableList<Lesson>visible=FXCollections.observableArrayList(LESSONS);ListView<Lesson>nav=new ListView<>(visible);nav.setPrefWidth(280);nav.getStyleClass().add("tutorial-navigation");TextField search=new TextField();search.setPromptText("Buscar comando, evento o ejemplo…");VBox left=new VBox(8,new Label("TUTORIAL 2GAMESCRIPT 2.1"),search,nav);left.setPadding(new Insets(14));left.getStyleClass().add("side-panel");VBox.setVgrow(nav,Priority.ALWAYS);Label heading=new Label();heading.getStyleClass().add("tutorial-heading");Label explanation=new Label();explanation.setWrapText(true);explanation.getStyleClass().add("tutorial-explanation");TextArea code=new TextArea();code.setEditable(false);code.setWrapText(false);code.getStyleClass().add("tutorial-code");Label note=new Label();note.setWrapText(true);note.getStyleClass().add("tutorial-note");Label status=new Label();status.getStyleClass().add("muted");Button copy=new Button("Copiar ejemplo"),insert=new Button("Insertar en script");insert.getStyleClass().add("primary-button");insert.setVisible(insertHandler!=null);insert.setManaged(insertHandler!=null);Region spacer=new Region();HBox.setHgrow(spacer,Priority.ALWAYS);HBox actions=new HBox(8,status,spacer,copy,insert);actions.setAlignment(Pos.CENTER_LEFT);VBox content=new VBox(10,heading,explanation,new Separator(),code,note,actions);content.setPadding(new Insets(18));VBox.setVgrow(code,Priority.ALWAYS);ScrollPane contentScroll=new ScrollPane(content);contentScroll.setFitToWidth(true);contentScroll.setFitToHeight(true);SplitPane split=new SplitPane(left,contentScroll);split.setDividerPositions(.27);root.setCenter(split);Runnable update=()->{Lesson l=nav.getSelectionModel().getSelectedItem();if(l==null){heading.setText("Sin resultados");explanation.setText("");code.clear();note.setText("");return;}heading.setText(l.title());explanation.setText(l.explanation());code.setText(l.code().strip());note.setText(l.note());status.setText("Lección "+(LESSONS.indexOf(l)+1)+" de "+LESSONS.size());};nav.getSelectionModel().selectedItemProperty().addListener((o,a,b)->update.run());search.textProperty().addListener((o,a,b)->{String q=b==null?"":b.trim().toLowerCase(Locale.ROOT);visible.setAll(LESSONS.stream().filter(l->q.isEmpty()||l.title().toLowerCase(Locale.ROOT).contains(q)||l.explanation().toLowerCase(Locale.ROOT).contains(q)||l.code().toLowerCase(Locale.ROOT).contains(q)).toList());if(!visible.isEmpty())nav.getSelectionModel().selectFirst();else update.run();});copy.setOnAction(e->{Lesson l=nav.getSelectionModel().getSelectedItem();if(l==null)return;ClipboardContent data=new ClipboardContent();data.putString(l.code().strip());Clipboard.getSystemClipboard().setContent(data);status.setText("Copiado.");});insert.setOnAction(e->{Lesson l=nav.getSelectionModel().getSelectedItem();if(l==null||insertHandler==null)return;insertHandler.accept(l.code().strip());status.setText("Insertado en el script seleccionado.");});Scene scene=new Scene(root,1080,720);var css=ScriptTutorialDialog.class.getResource("/com/buttclapdev/twogamerl/studio.css");if(css!=null)scene.getStylesheets().add(css.toExternalForm());stage.setScene(scene);nav.getSelectionModel().selectFirst();update.run();if(owner!=null){stage.setX(owner.getX()+Math.max(24,(owner.getWidth()-1080)/2));stage.setY(owner.getY()+Math.max(24,(owner.getHeight()-720)/2));}stage.show();}
-    private static HBox titleBar(Stage stage){Label mark=new Label("2G"),title=new Label("Tutorial de scripting · 2GameScript 2.1");mark.getStyleClass().add("window-app-mark");title.getStyleClass().add("window-title");Region spacer=new Region();HBox.setHgrow(spacer,Priority.ALWAYS);Button min=chrome("—"),max=chrome("▢"),close=chrome("×");close.getStyleClass().add("window-close");min.setOnAction(e->stage.setIconified(true));max.setOnAction(e->stage.setMaximized(!stage.isMaximized()));close.setOnAction(e->stage.close());HBox bar=new HBox(9,mark,title,spacer,min,max,close);bar.setAlignment(Pos.CENTER_LEFT);bar.getStyleClass().add("title-bar");double[]drag=new double[2];bar.setOnMousePressed(e->{if(e.getButton()!=MouseButton.PRIMARY||e.getTarget() instanceof Button)return;drag[0]=e.getSceneX();drag[1]=e.getSceneY();});bar.setOnMouseDragged(e->{if(stage.isMaximized()||e.getTarget() instanceof Button)return;stage.setX(e.getScreenX()-drag[0]);stage.setY(e.getScreenY()-drag[1]);});bar.setOnMouseClicked(e->{if(e.getButton()==MouseButton.PRIMARY&&e.getClickCount()==2&&!(e.getTarget() instanceof Button))stage.setMaximized(!stage.isMaximized());});return bar;}private static Button chrome(String text){Button b=new Button(text);b.getStyleClass().add("window-control");return b;}
+
+    private ScriptTutorialDialog(){}
+    static void show(Window owner){show(owner,null);}
+
+    static void show(Window owner,Consumer<String>insertHandler){
+        Stage stage=new Stage(StageStyle.UNDECORATED);if(owner!=null)stage.initOwner(owner);stage.initModality(Modality.NONE);
+        stage.setTitle("Tutorial y referencia · 2GameScript");stage.setMinWidth(980);stage.setMinHeight(640);
+        BorderPane root=new BorderPane();root.getStyleClass().addAll("studio-root","window-frame","tutorial-window");root.setTop(titleBar(stage));
+
+        ObservableList<Topic>visible=FXCollections.observableArrayList(TOPICS);
+        ListView<Topic>nav=new ListView<>(visible);nav.setPrefWidth(330);nav.getStyleClass().add("tutorial-navigation");
+        TextField search=new TextField();search.setPromptText("Buscar WASD, salto, Rigidbody2D, wait, showText…");
+        ComboBox<String>group=new ComboBox<>();group.getItems().add("TODOS");TOPICS.stream().map(Topic::group).distinct().forEach(group.getItems()::add);group.setValue("TODOS");group.setMaxWidth(Double.MAX_VALUE);
+        Label navTitle=new Label("2GAMESCRIPT · TUTORIAL + API");navTitle.getStyleClass().add("tutorial-heading");
+        VBox left=new VBox(8,navTitle,search,group,nav);left.setPadding(new Insets(14));left.getStyleClass().add("side-panel");VBox.setVgrow(nav,Priority.ALWAYS);
+
+        Label badge=new Label();badge.getStyleClass().add("muted");
+        Label heading=new Label();heading.getStyleClass().add("tutorial-heading");
+        Label definition=new Label();definition.setWrapText(true);definition.getStyleClass().add("tutorial-explanation");
+        Label syntaxTitle=new Label("SINTAXIS / PROPIEDADES");syntaxTitle.getStyleClass().add("section-title");
+        TextArea syntax=new TextArea();syntax.setEditable(false);syntax.setWrapText(false);syntax.getStyleClass().add("tutorial-code");syntax.setPrefRowCount(5);
+        Label exampleTitle=new Label("EJEMPLO");exampleTitle.getStyleClass().add("section-title");
+        TextArea example=new TextArea();example.setEditable(false);example.setWrapText(false);example.getStyleClass().add("tutorial-code");
+        Label notes=new Label();notes.setWrapText(true);notes.getStyleClass().add("tutorial-note");
+        Label status=new Label();status.getStyleClass().add("muted");
+        Button copy=new Button("Copiar ejemplo"),insert=new Button("Insertar ejemplo en script");insert.getStyleClass().add("primary-button");insert.setVisible(insertHandler!=null);insert.setManaged(insertHandler!=null);
+        Region spacer=new Region();HBox.setHgrow(spacer,Priority.ALWAYS);HBox actions=new HBox(8,status,spacer,copy,insert);actions.setAlignment(Pos.CENTER_LEFT);
+        VBox content=new VBox(10,badge,heading,definition,new Separator(),syntaxTitle,syntax,exampleTitle,example,notes,actions);content.setPadding(new Insets(18));VBox.setVgrow(example,Priority.ALWAYS);
+        ScrollPane contentScroll=new ScrollPane(content);contentScroll.setFitToWidth(true);contentScroll.setFitToHeight(true);
+        SplitPane split=new SplitPane(left,contentScroll);split.setDividerPositions(.30);root.setCenter(split);
+
+        Runnable filter=()->{
+            String q=search.getText()==null?"":search.getText().trim().toLowerCase(Locale.ROOT);String g=group.getValue()==null?"TODOS":group.getValue();
+            visible.setAll(TOPICS.stream().filter(t->(g.equals("TODOS")||t.group().equals(g))&&(q.isEmpty()||t.searchable().contains(q))).toList());
+            if(!visible.isEmpty())nav.getSelectionModel().selectFirst();
+        };
+        Runnable update=()->{
+            Topic t=nav.getSelectionModel().getSelectedItem();if(t==null){badge.setText("");heading.setText("Sin resultados");definition.setText("");syntax.clear();example.clear();notes.setText("");status.setText("");return;}
+            badge.setText(t.group());heading.setText(t.title());definition.setText(t.definition());syntax.setText(t.syntax().strip());example.setText(t.example().strip());notes.setText(t.notes());status.setText((TOPICS.indexOf(t)+1)+" / "+TOPICS.size());
+        };
+        nav.getSelectionModel().selectedItemProperty().addListener((o,a,b)->update.run());search.textProperty().addListener((o,a,b)->filter.run());group.valueProperty().addListener((o,a,b)->filter.run());
+        copy.setOnAction(e->{Topic t=nav.getSelectionModel().getSelectedItem();if(t==null)return;ClipboardContent data=new ClipboardContent();data.putString(t.example().strip());Clipboard.getSystemClipboard().setContent(data);status.setText("Ejemplo copiado.");});
+        insert.setOnAction(e->{Topic t=nav.getSelectionModel().getSelectedItem();if(t==null||insertHandler==null||t.example().isBlank())return;insertHandler.accept(t.example().strip());status.setText("Ejemplo insertado en el script seleccionado.");});
+
+        Scene scene=new Scene(root,1180,780);var css=ScriptTutorialDialog.class.getResource("/com/buttclapdev/twogamerl/studio.css");if(css!=null)scene.getStylesheets().add(css.toExternalForm());stage.setScene(scene);nav.getSelectionModel().selectFirst();update.run();
+        if(owner!=null){stage.setX(owner.getX()+Math.max(24,(owner.getWidth()-1180)/2));stage.setY(owner.getY()+Math.max(24,(owner.getHeight()-780)/2));}stage.show();
+    }
+
+    private static HBox titleBar(Stage stage){
+        Label mark=new Label("2G"),title=new Label("Tutorial + Referencia API · 2GameScript");mark.getStyleClass().add("window-app-mark");title.getStyleClass().add("window-title");
+        Region spacer=new Region();HBox.setHgrow(spacer,Priority.ALWAYS);Button min=chrome("—"),max=chrome("▢"),close=chrome("×");close.getStyleClass().add("window-close");
+        min.setOnAction(e->stage.setIconified(true));max.setOnAction(e->stage.setMaximized(!stage.isMaximized()));close.setOnAction(e->stage.close());
+        HBox bar=new HBox(9,mark,title,spacer,min,max,close);bar.setAlignment(Pos.CENTER_LEFT);bar.getStyleClass().add("title-bar");double[]drag=new double[2];
+        bar.setOnMousePressed(e->{if(e.getButton()!=MouseButton.PRIMARY||e.getTarget() instanceof Button)return;drag[0]=e.getSceneX();drag[1]=e.getSceneY();});
+        bar.setOnMouseDragged(e->{if(stage.isMaximized()||e.getTarget() instanceof Button)return;stage.setX(e.getScreenX()-drag[0]);stage.setY(e.getScreenY()-drag[1]);});
+        bar.setOnMouseClicked(e->{if(e.getButton()==MouseButton.PRIMARY&&e.getClickCount()==2&&!(e.getTarget() instanceof Button))stage.setMaximized(!stage.isMaximized());});return bar;
+    }
+    private static Button chrome(String text){Button b=new Button(text);b.getStyleClass().add("window-control");return b;}
 }
