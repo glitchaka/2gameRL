@@ -11,6 +11,7 @@ Esta especificación define la siguiente gran actualización gráfica del motor.
 5. El render pixel-art usa nearest-neighbor y escalado entero; la resolución física del monitor no cambia la resolución lógica del juego.
 6. Las operaciones de recursos respetan `Ctrl+C`, `Ctrl+V`, `Supr` y selección múltiple.
 7. Los cambios visuales no rompen scripts/proyectos 2.1.0 sin una ruta de migración.
+8. El runtime no decide la apariencia de un juego mediante valores visuales hardcodeados: colores, tipografías, tamaños, bordes, opacidades, fades y skins son datos editables del proyecto. Los únicos valores internos permitidos son fallbacks técnicos para proyectos antiguos/corruptos.
 
 ## 2. Recursos visuales
 
@@ -303,9 +304,45 @@ if Animator.finished == true
 if Animator.frame == 3
 ```
 
+### 11.1 Estado físico para scripting de plataformas
+
+2.2.0 debe exponer estado de contacto calculado por el motor para que el usuario pueda programar saltos reales sin variables manuales ni saltos infinitos:
+
+```text
+Rigidbody2D.grounded
+Rigidbody2D.touchingLeft
+Rigidbody2D.touchingRight
+Rigidbody2D.touchingTop
+```
+
+Son propiedades de solo lectura.
+
+Ejemplo canónico de plataformas:
+
+```text
+on update
+  self.vx = 0
+
+  ifKey A
+    self.vx = -5
+  end
+  ifKey D
+    self.vx = 5
+  end
+
+  ifPressed SPACE
+    if Rigidbody2D.grounded == true
+      self.vy = -8
+    end
+  end
+end
+```
+
+Debe documentarse claramente que el eje Y no se deshabilita: la gravedad modifica `vy` y el salto asigna un impulso negativo una vez.
+
 ## 12. TextStyle y colores de texto
 
-En 2.1.0 los colores de FREE/BUBBLE/NOVEL están hardcodeados. 2.2.0 introduce `TextStyle` reutilizable.
+En 2.1.0 los colores de FREE/BUBBLE/NOVEL están hardcodeados. 2.2.0 introduce `TextStyle` reutilizable y elimina esa decisión del renderer.
 
 Propiedades:
 - `textColor`
@@ -341,6 +378,8 @@ showText free screen "PELIGRO" 2 color "#FF4040"
 ```
 
 El editor ofrecerá selector de color y preview; no será necesario escribir hexadecimal para el uso normal.
+
+Los estilos predeterminados se serializan dentro del proyecto. No deben existir colores/tamaños obligatorios en `TextOverlayLayer`; solo un fallback técnico para migración de proyectos antiguos.
 
 ## 13. Sistema de texto
 
@@ -479,12 +518,51 @@ Migración prevista:
 - `TileLayer.cells` se conserva y se migra sin convertir celdas en entidades
 - scripts `self.sprite`, `setSprite`, etc. siguen funcionando
 - fuentes importadas siguen siendo válidas
-- FREE/BUBBLE/NOVEL existentes mantienen apariencia si no se asigna TextStyle
+- FREE/BUBBLE/NOVEL existentes mantienen apariencia mediante un estilo de migración generado, no mediante constantes permanentes del renderer
 
 ## 21. Render backend
 
 2.2.0 debe mantener JavaFX para este bloque. OpenGL/LWJGL no se introduce solo para alpha, fades o nearest-neighbor. Un backend GPU propio se evaluará como una etapa separada cuando se necesiten shaders, iluminación 2D, partículas GPU o postprocesado.
 
-## 22. Criterio de versión
+## 22. Tutorial y referencia integrada de 2GameScript
+
+El botón `Tutorial` deja de ser una colección corta de ejemplos. Debe ser una referencia navegable del lenguaje con buscador y filtros.
+
+Debe documentar, uno por uno:
+- cada evento
+- cada comando
+- cada operador de asignación/comparación
+- cada ruta (`self`, `other`, `global`, `save`, `scene`, `layer`)
+- cada componente/clase integrada
+- cada propiedad pública de esos componentes
+- cada comando legacy aún compatible
+- interpolación
+- limitaciones reales de la versión
+
+Cada ficha contiene:
+- definición
+- firma/sintaxis
+- tipos/propiedades
+- ejemplo ejecutable
+- notas y restricciones
+
+Debe incluir recetas completas, no fragmentos inconexos:
+- WASD libre
+- WASD con Rigidbody2D
+- salto de plataformas con `grounded`
+- GridMovement
+- colisiones
+- trigger
+- daño/Health
+- cambio de escena
+- señales
+- persistencia SQLite
+- FREE/BUBBLE/NOVEL
+- animaciones/Animator cuando estén implementadas
+- scripts de escena y capa
+
+El tutorial integrado debe distinguir explícitamente una API existente de una API planificada; nunca debe mostrar una función futura como si ya funcionara.
+
+## 23. Criterio de versión
 
 Esta actualización se considera 2.2.0 porque amplía de forma importante el pipeline gráfico y de autoría sin requerir un cambio incompatible de API mayor.
