@@ -4,6 +4,7 @@ import com.buttclapdev.twogamerl.model.GameProject;
 import com.buttclapdev.twogamerl.model.GameProject.Asset;
 import com.buttclapdev.twogamerl.model.GameProject.FontAsset;
 import com.buttclapdev.twogamerl.model.GameProject.TextStyle;
+import com.buttclapdev.twogamerl.model.GameProject.UISkinAsset;
 import com.buttclapdev.twogamerl.script.ScriptProgram.TextRequest;
 import javafx.geometry.Insets;
 import javafx.geometry.Point2D;
@@ -63,9 +64,11 @@ final class TextOverlayLayer extends Pane {
     private TextStyle resolveStyle(String type,String requested){
         TextStyle style=requested==null||requested.isBlank()?null:project.getTextStyles().get(requested);
         if(style==null)style=project.getTextStyles().get("default-"+type);
-        if(style!=null)return style;
+        if(style!=null)return applyUiSkin(style);
         TextStyle fallback=new TextStyle("fallback",type);fallback.textColor=java.awt.Color.WHITE;fallback.fontSize=18;fallback.fadeIn=.15;fallback.fadeOut=.35;return fallback;
     }
+
+    private TextStyle applyUiSkin(TextStyle source){UISkinAsset skin=source.uiSkinKey==null||source.uiSkinKey.isBlank()?null:project.getUiSkins().get(source.uiSkinKey);if(skin==null)return source;TextStyle s=source.copy();if(s.fontKey.isBlank())s.fontKey=skin.fontKey;if(!skin.normalAssetKey.isBlank())s.skinAssetKey=skin.normalAssetKey;s.textColor=skin.textColor;s.backgroundColor=skin.backgroundColor;s.borderColor=skin.borderColor;s.paddingX=skin.paddingX;s.paddingY=skin.paddingY;s.borderWidth=skin.borderWidth;s.radius=skin.radius;return s;}
 
     private Node free(String text,TextStyle s){Label l=label(text,s,s.fontSize,s.textColor,s.bold);l.setWrapText(true);l.setMaxWidth(Math.max(1,s.maxWidth));applyShadow(l,s);l.setMouseTransparent(true);return l;}
 
