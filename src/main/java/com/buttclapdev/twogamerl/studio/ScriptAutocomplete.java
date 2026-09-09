@@ -2,6 +2,7 @@ package com.buttclapdev.twogamerl.studio;
 
 import com.buttclapdev.twogamerl.model.GameProject;
 import com.buttclapdev.twogamerl.model.GameProject.*;
+import com.buttclapdev.twogamerl.model.ResourceRef;
 import javafx.geometry.Bounds;
 import javafx.scene.control.ContextMenu;
 import javafx.scene.control.MenuItem;
@@ -33,7 +34,7 @@ final class ScriptAutocomplete {
 
     private void install(){
         editor.addEventFilter(KeyEvent.KEY_PRESSED,e->{if(e.getCode()==KeyCode.SPACE&&e.isControlDown()){refresh(true);e.consume();}else if(e.getCode()==KeyCode.ESCAPE&&menu.isShowing()){menu.hide();e.consume();}});
-        editor.addEventFilter(KeyEvent.KEY_TYPED,e->{if(e.isControlDown()||e.isAltDown()||e.isMetaDown())return;String ch=e.getCharacter();if(ch!=null&&!ch.isEmpty()&&(Character.isLetterOrDigit(ch.charAt(0))||"._-".contains(ch)))javafx.application.Platform.runLater(()->refresh(false));});
+        editor.addEventFilter(KeyEvent.KEY_TYPED,e->{if(e.isControlDown()||e.isAltDown()||e.isMetaDown())return;String ch=e.getCharacter();if(ch!=null&&!ch.isEmpty()&&(Character.isLetterOrDigit(ch.charAt(0))||"._-\"".contains(ch)))javafx.application.Platform.runLater(()->refresh(false));});
         editor.focusedProperty().addListener((o,a,b)->{if(!b)menu.hide();});
     }
 
@@ -41,32 +42,45 @@ final class ScriptAutocomplete {
 
     private List<Suggestion>suggestions(String lineBefore,String prefix){String lower=lineBefore.stripLeading().toLowerCase(Locale.ROOT),p=prefix.toLowerCase(Locale.ROOT);LinkedHashMap<String,Suggestion>out=new LinkedHashMap<>();
         if(lower.matches("on\\s+[^ ]*$")){for(String e:EVENTS)add(out,e,e,"Evento",p);return limit(out);}
-        if(afterCommand(lower,"loadscene")){for(Level l:app.project().getLevels().values())add(out,l.id,l.id+" — "+l.name,"Escena",p);return limit(out);}
-        if(afterCommand(lower,"showmenu")){for(MenuScreen m:app.project().getMenus().values())add(out,m.id,m.id+" — "+m.title,"Menú",p);return limit(out);}
-        if(afterCommand(lower,"spawnprefab")){for(PrefabDef x:app.project().getPrefabs().values())add(out,x.key,x.key+" — "+x.name,"Prefab",p);return limit(out);}
-        if(afterCommand(lower,"playanimation")||afterCommand(lower,"queueanimation")){for(AnimationClip x:app.project().getAnimationClips().values())add(out,x.key,x.key+" — "+x.name,"Animación",p);return limit(out);}
-        if(afterCommand(lower,"ifaction")||afterCommand(lower,"ifactionpressed")){for(InputAction x:app.project().getInputActions().values())add(out,x.key,x.key+" — "+x.name,"Input",p);return limit(out);}
+        if(afterCommand(lower,"loadscene")){for(Level l:unique(app.project().getLevels().values()))addRef(out,l.name,l.id,"Escena",p);return limit(out);}
+        if(afterCommand(lower,"showmenu")){for(MenuScreen m:unique(app.project().getMenus().values()))addRef(out,m.title,m.id,"Menú",p);return limit(out);}
+        if(afterCommand(lower,"spawnprefab")){for(PrefabDef x:unique(app.project().getPrefabs().values()))addRef(out,x.name,x.key,"Prefab",p);return limit(out);}
+        if(afterCommand(lower,"playanimation")||afterCommand(lower,"queueanimation")){for(AnimationClip x:unique(app.project().getAnimationClips().values()))addRef(out,x.name,x.key,"Animación",p);for(AnimatorController c:unique(app.project().getAnimatorControllers().values()))for(String state:c.states.keySet())add(out,ResourceRef.scriptName(state),state+" — estado de "+c.name,"Estado Animator",p);return limit(out);}
+        if(afterCommand(lower,"ifaction")||afterCommand(lower,"ifactionpressed")){for(InputAction x:unique(app.project().getInputActions().values()))addRef(out,x.name,x.key,"Input",p);return limit(out);}
         if(afterCommand(lower,"emit")){for(String x:knownNamedEvents())add(out,x,x,"Señal",p);return limit(out);}
-        if(afterCommand(lower,"setsprite")){for(Asset x:app.project().getAssets().values())add(out,x.key,x.key,"Asset",p);return limit(out);}
-        if(lower.contains(" style ")||lower.endsWith(" style")){for(TextStyle x:app.project().getTextStyles().values())add(out,x.key,x.key+" — "+x.name,"TextStyle",p);return limit(out);}
+        if(afterCommand(lower,"setsprite")){for(Asset x:drawableAssets())addRef(out,x.sourceName,x.key,"Asset",p);return limit(out);}
+        if(lower.contains(" style ")||lower.endsWith(" style")){for(TextStyle x:unique(app.project().getTextStyles().values()))addRef(out,x.name,x.key,"TextStyle",p);return limit(out);}
+
+        if(assignmentContext(lower,"particleemitter2d.preset")){for(ParticlePreset x:unique(app.project().getParticlePresets().values()))addRef(out,x.name,x.key,"ParticlePreset",p);return limit(out);}
+        if(assignmentContext(lower,"animator.controller")){for(AnimatorController x:unique(app.project().getAnimatorControllers().values()))addRef(out,x.name,x.key,"AnimatorController",p);return limit(out);}
+        if(assignmentContext(lower,"animator.clip")){for(AnimationClip x:unique(app.project().getAnimationClips().values()))addRef(out,x.name,x.key,"AnimationClip",p);return limit(out);}
+        if(assignmentContext(lower,"sceneportal.targetscene")){for(Level x:unique(app.project().getLevels().values()))addRef(out,x.name,x.id,"Escena",p);return limit(out);}
+        if(assignmentContext(lower,"spriterenderer.palette")){for(PaletteAsset x:unique(app.project().getPalettes().values()))addRef(out,x.name,x.key,"Paleta",p);return limit(out);}
+        if(assignmentContext(lower,"camera2d.target")||assignmentContext(lower,"scene.camera.target")){for(EntityDef e:allEntities())addRef(out,e.name,e.id,"Entidad objetivo",p);return limit(out);}
+        if(assignmentContext(lower,"platformercontroller.leftaction")||assignmentContext(lower,"platformercontroller.rightaction")||assignmentContext(lower,"platformercontroller.jumpaction")){for(InputAction x:unique(app.project().getInputActions().values()))addRef(out,x.name,x.key,"Input Action",p);return limit(out);}
+
         if(prefix.toLowerCase(Locale.ROOT).startsWith("self.")){for(String x:SELF_PATHS)add(out,"self."+x,"self."+x,"Ruta",p);return limit(out);}
         if(prefix.toLowerCase(Locale.ROOT).startsWith("scene.")){for(String x:SCENE_PATHS)add(out,"scene."+x,"scene."+x,"Ruta escena",p);return limit(out);}
         if(prefix.toLowerCase(Locale.ROOT).startsWith("layer.")){for(String x:LAYER_PATHS)add(out,"layer."+x,"layer."+x,"Ruta capa",p);return limit(out);}
         if(prefix.toLowerCase(Locale.ROOT).startsWith("global.")){for(String x:knownGlobals())add(out,"global."+x,"global."+x,"Global",p);return limit(out);}
         if(prefix.toLowerCase(Locale.ROOT).startsWith("save.")){for(String x:knownSaves())add(out,"save."+x,"save."+x,"Persistente",p);return limit(out);}
         int dot=prefix.indexOf('.');if(dot>0){String head=prefix.substring(0,dot);ComponentDef preset=componentPreset(head);if(preset!=null){for(String prop:preset.properties.keySet())add(out,head+"."+prop,head+"."+prop,"Componente",p);return limit(out);}for(EntityDef e:allEntities())if(e.id.equalsIgnoreCase(head)||e.name.equalsIgnoreCase(head)){for(String x:SELF_PATHS)add(out,head+"."+x,head+"."+x,"Entidad",p);for(ComponentDef c:e.components)for(String prop:c.properties.keySet())add(out,head+"."+c.type+"."+prop,head+"."+c.type+"."+prop,"Entidad",p);return limit(out);}}
-        for(String c:COMMANDS)add(out,c,c,"Comando",p);for(String c:GameProject.BUILTIN_COMPONENTS)add(out,c+".",c+" — "+GameProject.componentDescription(c),"Componente",p);for(String v:knownLocals())add(out,v,v,"Variable local",p);for(Level l:app.project().getLevels().values())add(out,l.id,l.id+" — "+l.name,"Escena",p);for(MenuScreen m:app.project().getMenus().values())add(out,m.id,m.id+" — "+m.title,"Menú",p);for(PrefabDef x:app.project().getPrefabs().values())add(out,x.key,x.key+" — "+x.name,"Prefab",p);return limit(out);}
+        for(String c:COMMANDS)add(out,c,c,"Comando",p);for(String c:GameProject.BUILTIN_COMPONENTS)add(out,c+".",c+" — "+GameProject.componentDescription(c),"Componente",p);for(String v:knownLocals())add(out,v,v,"Variable local",p);for(Level l:unique(app.project().getLevels().values()))addRef(out,l.name,l.id,"Escena",p);for(MenuScreen m:unique(app.project().getMenus().values()))addRef(out,m.title,m.id,"Menú",p);for(PrefabDef x:unique(app.project().getPrefabs().values()))addRef(out,x.name,x.key,"Prefab",p);return limit(out);}
 
     private void show(List<Suggestion>suggestions,int start,int end){menu.getItems().clear();String group="";for(Suggestion s:suggestions){if(!Objects.equals(group,s.group)){if(!menu.getItems().isEmpty())menu.getItems().add(new SeparatorMenuItem());MenuItem heading=new MenuItem(s.group.toUpperCase(Locale.ROOT));heading.setDisable(true);menu.getItems().add(heading);group=s.group;}MenuItem item=new MenuItem(s.label);item.setOnAction(e->{editor.replaceText(start,end,s.insert);editor.positionCaret(start+s.insert.length());menu.hide();editor.requestFocus();});menu.getItems().add(item);}Bounds b=editor.localToScreen(editor.getBoundsInLocal());if(b!=null){if(menu.isShowing())menu.hide();menu.show(editor,b.getMinX()+18,Math.min(b.getMaxY()-24,b.getMinY()+220));}}
 
-    private Collection<String>knownLocals(){LinkedHashSet<String>r=new LinkedHashSet<>(localVariables.get());for(Level l:app.project().getLevels().values()){r.addAll(l.variables.keySet());for(TileLayer layer:l.tileLayers)r.addAll(layer.variables.keySet());for(EntityDef e:l.entities)r.addAll(e.variables.keySet());}for(PrefabDef p:app.project().getPrefabs().values())if(p.template!=null)r.addAll(p.template.variables.keySet());Matcher m=LOCAL.matcher(editor.getText());while(m.find())r.add(m.group(1));return r;}
+    private Collection<String>knownLocals(){LinkedHashSet<String>r=new LinkedHashSet<>(localVariables.get());for(Level l:app.project().getLevels().values()){r.addAll(l.variables.keySet());for(TileLayer layer:l.tileLayers)r.addAll(layer.variables.keySet());for(EntityDef e:l.entities)r.addAll(e.variables.keySet());}for(PrefabDef p:unique(app.project().getPrefabs().values()))if(p.template!=null)r.addAll(p.template.variables.keySet());Matcher m=LOCAL.matcher(editor.getText());while(m.find())r.add(m.group(1));return r;}
     private Collection<String>knownGlobals(){return scanScripts(GLOBAL);}private Collection<String>knownSaves(){return scanScripts(SAVE);}private Collection<String>knownNamedEvents(){LinkedHashSet<String>r=new LinkedHashSet<>();for(String s:allScripts()){Matcher m=NAMED_EVENT.matcher(s);while(m.find())r.add(m.group(1));}return r;}
     private Collection<String>scanScripts(Pattern pattern){LinkedHashSet<String>r=new LinkedHashSet<>();for(String s:allScripts()){Matcher m=pattern.matcher(s);while(m.find())r.add(m.group(1));}return r;}
-    private Collection<String>allScripts(){ArrayList<String>r=new ArrayList<>();for(Level l:app.project().getLevels().values()){r.add(l.script);for(TileLayer x:l.tileLayers)r.add(x.script);for(EntityDef e:l.entities)r.add(e.script);}for(PrefabDef p:app.project().getPrefabs().values())if(p.template!=null)r.add(p.template.script);return r;}
-    private Collection<EntityDef>allEntities(){ArrayList<EntityDef>r=new ArrayList<>();for(Level l:app.project().getLevels().values())r.addAll(l.entities);return r;}
+    private Collection<String>allScripts(){ArrayList<String>r=new ArrayList<>();for(Level l:app.project().getLevels().values()){r.add(l.script);for(TileLayer x:l.tileLayers)r.add(x.script);for(EntityDef e:l.entities)r.add(e.script);}for(PrefabDef p:unique(app.project().getPrefabs().values()))if(p.template!=null)r.add(p.template.script);return r;}
+    private Collection<EntityDef>allEntities(){ArrayList<EntityDef>r=new ArrayList<>();for(Level l:unique(app.project().getLevels().values()))r.addAll(l.entities);return r;}
+    private Collection<Asset>drawableAssets(){return unique(app.project().getAssets().values()).stream().filter(a->!a.sourceOnly||a.isRegion()).filter(a->!a.tags.contains("2rl-particle-internal")).toList();}
     private static ComponentDef componentPreset(String type){for(String c:GameProject.BUILTIN_COMPONENTS)if(c.equalsIgnoreCase(type))return ComponentDef.preset(c);return null;}
     private static boolean afterCommand(String lower,String command){String t=lower.stripLeading();return t.startsWith(command+" ")&&t.indexOf(' ',command.length()+1)<0;}
-    private static boolean isTokenChar(char ch){return Character.isLetterOrDigit(ch)||ch=='_'||ch=='-'||ch=='.'||ch=='#';}
-    private static void add(Map<String,Suggestion>out,String insert,String label,String group,String prefix){if(insert==null||insert.isBlank())return;if(!prefix.isBlank()&&!insert.toLowerCase(Locale.ROOT).startsWith(prefix)&&!label.toLowerCase(Locale.ROOT).contains(prefix))return;out.putIfAbsent(group+'\0'+insert.toLowerCase(Locale.ROOT),new Suggestion(insert,label,group));}
-    private static List<Suggestion>limit(LinkedHashMap<String,Suggestion>m){return m.values().stream().limit(18).toList();}
+    private static boolean assignmentContext(String lower,String path){int eq=lower.lastIndexOf('=');if(eq<0)return false;String left=lower.substring(0,eq).replaceAll("\\s+","");return left.equals(path)||left.endsWith("."+path);}
+    private static boolean isTokenChar(char ch){return Character.isLetterOrDigit(ch)||ch=='_'||ch=='-'||ch=='.'||ch=='#'||ch=='\"';}
+    private static void addRef(Map<String,Suggestion>out,String visible,String key,String group,String prefix){String name=visible==null||visible.isBlank()?key:visible;add(out,ResourceRef.scriptName(name),name+(key==null||key.equalsIgnoreCase(name)?"":" — "+key),group,prefix);}
+    private static void add(Map<String,Suggestion>out,String insert,String label,String group,String prefix){if(insert==null||insert.isBlank())return;String cleanPrefix=prefix.replace("\"","");if(!cleanPrefix.isBlank()&&!insert.toLowerCase(Locale.ROOT).replace("\"","").startsWith(cleanPrefix)&&!label.toLowerCase(Locale.ROOT).contains(cleanPrefix))return;out.putIfAbsent(group+'\0'+insert.toLowerCase(Locale.ROOT),new Suggestion(insert,label,group));}
+    private static <T>List<T>unique(Collection<T>values){Set<T>seen=Collections.newSetFromMap(new IdentityHashMap<>());ArrayList<T>out=new ArrayList<>();for(T v:values)if(v!=null&&seen.add(v))out.add(v);return out;}
+    private static List<Suggestion>limit(LinkedHashMap<String,Suggestion>m){return m.values().stream().limit(24).toList();}
 }
