@@ -1,6 +1,6 @@
-# 2GameScript 2.2 — Referencia API
+# 2GameScript 2.3.0-rc1 — Referencia API
 
-Esta referencia describe la API disponible en 2gameRL Studio 2.2.0. El tutorial integrado del Studio usa los mismos nombres y ejemplos.
+Esta referencia describe la API disponible en 2gameRL Studio 2.3.0-rc1. El tutorial integrado del Studio usa los mismos nombres y ejemplos.
 
 ## Movimiento recomendado
 
@@ -235,9 +235,13 @@ Iteración:
 repeat 3
   create chispa
 end
+
+while self.x < 10
+  self.x += 1
+end
 ```
 
-`repeat` tiene un límite de 10.000 iteraciones por bloque. `stop` y `return` terminan el evento actual.
+`repeat` y `while` tienen un límite de 10.000 iteraciones por bloque. `while` usa una ruta, operador y valor como `if`, y puede contener `wait`. `stop` y `return` terminan el evento actual.
 
 ## Tiempo
 
@@ -288,8 +292,10 @@ Propiedades principales:
 ```text
 Animator.enabled
 Animator.controller
+Animator.animationSet
 Animator.clip
 Animator.state
+Animator.direction
 Animator.speed
 Animator.flipX
 Animator.flipY
@@ -444,6 +450,16 @@ offsetX:number
 offsetY:number
 pixelSnap:boolean
 priority:number
+smoothSpeed:number
+deadZoneX:number
+deadZoneY:number
+zoomSpeed:number
+minX:number|string vacío
+minY:number|string vacío
+maxX:number|string vacío
+maxY:number|string vacío
+shakeIntensity:number
+shakeDuration:number
 ```
 
 ### `ParticleEmitter2D`
@@ -565,4 +581,16 @@ ifOther
 
 ## Límites actuales del lenguaje
 
-2GameScript 2.2 no pretende ser Java/Lua de propósito general. No incluye `while` arbitrario, funciones/clases definidas por usuario, imports ni SQL directo. El objetivo es ofrecer una DSL de gameplay legible, con rutas de componentes, eventos, señales, temporización, Input Map, Prefabs y animación sin exponer la implementación interna del motor.
+2GameScript 2.3.0-rc1 no pretende ser Java/Lua de propósito general. Incluye `while` acotado a 10.000 iteraciones, pero no clases/imports definidos por usuario, reflexión Java ni SQL directo. El objetivo sigue siendo una DSL de gameplay legible y segura.
+
+## API RC añadida
+
+- `Animator.param.<nombre>`: lectura/escritura de parámetros BOOL/INT/FLOAT/TRIGGER.
+- Blend trees 1D/2D discretos por clip más cercano.
+- `AnimationSet`: 2/4/8 direcciones con fallback `DEFAULT` y flipX opcional.
+- `FrameShape`: HITBOX/HURTBOX por frame; señales `on event hitbox` y `on event hurtbox`.
+- `Camera2D.zoomSpeed`, bounds `minX/minY/maxX/maxY`.
+- `UISkinAsset`: normal/hover/pressed/disabled.
+- Autotile 4/8 vías, variantes ponderadas y StampPattern.
+
+La especificación completa de campos, métodos, máscaras, coerciones, límites y ejemplos está en la Biblia técnica, sección 30.
