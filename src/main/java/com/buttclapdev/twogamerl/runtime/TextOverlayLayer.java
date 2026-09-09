@@ -1,6 +1,7 @@
 package com.buttclapdev.twogamerl.runtime;
 
 import com.buttclapdev.twogamerl.model.GameProject;
+import com.buttclapdev.twogamerl.model.GameProject.Asset;
 import com.buttclapdev.twogamerl.model.GameProject.FontAsset;
 import com.buttclapdev.twogamerl.model.GameProject.TextStyle;
 import com.buttclapdev.twogamerl.script.ScriptProgram.TextRequest;
@@ -10,6 +11,8 @@ import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.control.Label;
 import javafx.scene.effect.DropShadow;
+import javafx.scene.image.Image;
+import javafx.scene.image.WritableImage;
 import javafx.scene.input.KeyCode;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
@@ -25,6 +28,7 @@ final class TextOverlayLayer extends Pane {
     private final GameProject project;
     private final List<Entry>entries=new ArrayList<>();
     private final Function<String,Point2D>anchorResolver;
+    private final Map<String,Image>skinCache=new HashMap<>();
 
     TextOverlayLayer(GameProject project,Function<String,Point2D>anchorResolver){this.project=project;this.anchorResolver=anchorResolver;setPickOnBounds(false);}
 
@@ -92,10 +96,15 @@ final class TextOverlayLayer extends Pane {
     }
 
     private static void applyShadow(Node n,TextStyle s){if(!s.shadow)return;DropShadow d=new DropShadow();d.setColor(fx(s.shadowColor));d.setRadius(6);d.setOffsetY(2);n.setEffect(d);}
-    private static void applyBoxStyle(Region r,TextStyle s){
-        String bg=css(s.backgroundColor),border=css(s.borderColor);
-        r.setStyle(String.format(Locale.ROOT,"-fx-background-color:%s;-fx-background-radius:%.2f;-fx-border-color:%s;-fx-border-width:%.2f;-fx-border-radius:%.2f;",bg,s.radius,border,s.borderWidth,s.radius));
+    private void applyBoxStyle(Region r,TextStyle s){
+        Asset skin=s.skinAssetKey==null||s.skinAssetKey.isBlank()?null:project.getAssets().get(s.skinAssetKey);Image image=skin==null?null:skinImage(skin);
+        if(skin!=null&&image!=null&&skin.isNineSlice()){
+            BorderWidths widths=new BorderWidths(skin.sliceTop,skin.sliceRight,skin.sliceBottom,skin.sliceLeft);
+            r.setBackground(Background.EMPTY);r.setBorder(new Border(new BorderImage(image,widths,Insets.EMPTY,widths,true,BorderRepeat.STRETCH,BorderRepeat.STRETCH)));return;
+        }
+        r.setBorder(Border.EMPTY);String bg=css(s.backgroundColor),border=css(s.borderColor);r.setStyle(String.format(Locale.ROOT,"-fx-background-color:%s;-fx-background-radius:%.2f;-fx-border-color:%s;-fx-border-width:%.2f;-fx-border-radius:%.2f;",bg,s.radius,border,s.borderWidth,s.radius));
     }
+    private Image skinImage(Asset asset){Image cached=skinCache.get(asset.key);if(cached!=null)return cached;try{Asset physical=asset.isRegion()?project.getAssets().get(asset.sourceAssetKey):asset;if(physical==null||physical.data==null)return null;Image source=new Image(new ByteArrayInputStream(physical.data));Image out=source;if(asset.isRegion()&&source.getPixelReader()!=null)out=new WritableImage(source.getPixelReader(),asset.regionX,asset.regionY,asset.regionWidth,asset.regionHeight);skinCache.put(asset.key,out);return out;}catch(Exception ignored){return null;}}
     private static String css(java.awt.Color c){return String.format(Locale.ROOT,"rgba(%d,%d,%d,%.4f)",c.getRed(),c.getGreen(),c.getBlue(),c.getAlpha()/255.0);}
     private static Color fx(java.awt.Color c){return Color.rgb(c.getRed(),c.getGreen(),c.getBlue(),c.getAlpha()/255.0);}
     private static java.awt.Color awt(Color c){return new java.awt.Color((float)c.getRed(),(float)c.getGreen(),(float)c.getBlue(),(float)c.getOpacity());}
