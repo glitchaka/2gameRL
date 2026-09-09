@@ -1,5 +1,6 @@
 package com.buttclapdev.twogamerl.studio;
 
+import com.buttclapdev.twogamerl.AppIcon;
 import com.buttclapdev.twogamerl.export.NativeExporter;
 import com.buttclapdev.twogamerl.io.ProjectIO;
 import com.buttclapdev.twogamerl.model.GameProject;
@@ -101,7 +102,7 @@ public final class StudioApp extends Application {
     private void quickGuide(){info("2gameRL Studio en 60 segundos","1. Gráficos: importa imágenes/spritesheets y crea Pinceles/Prefabs.\n2. Escena: elige un Pincel; Dibujar pinta tilemap o instancia Prefabs automáticamente.\n3. Configuración: fija resolución lógica, fullscreen/pixel-perfect e Input Map.\n4. Inspector: añade Rigidbody2D, PlatformerController, Animator, Collider, Health, etc.\n5. Script > Tutorial contiene la referencia completa de 2GameScript, WASD y salto.\n6. ▶ Probar abre el juego a pantalla completa con escalado pixel-perfect.\n7. Ctrl+Z/Ctrl+Y deshacen y rehacen cambios del proyecto.");}
     private void updateTitle(){if(stage==null)return;String title="2gameRL Studio 2.2 · "+project.getTitle()+(dirty?"  ●":"");stage.setTitle(title);windowTitle.setText(title);}
     private void applyCss(Scene scene){var css=getClass().getResource("/com/buttclapdev/twogamerl/studio.css");if(css!=null)scene.getStylesheets().add(css.toExternalForm());}
-    private static void loadWindowIcon(Stage target){try(InputStream in=StudioApp.class.getResourceAsStream("/com/buttclapdev/twogamerl/2rl-icon.png")){if(in!=null)target.getIcons().add(new Image(in));}catch(Exception ignored){}}
+    private static void loadWindowIcon(Stage target){try{target.getIcons().add(AppIcon.create(256));}catch(Exception ignored){}}
     void error(String header,String message){Alert a=new Alert(Alert.AlertType.ERROR,message==null?"Error desconocido":message,ButtonType.OK);a.setHeaderText(header);a.showAndWait();}void info(String header,String message){Alert a=new Alert(Alert.AlertType.INFORMATION,message,ButtonType.OK);a.setHeaderText(header);a.showAndWait();}
     public static void main(String[]args){launch(args);}
 }
