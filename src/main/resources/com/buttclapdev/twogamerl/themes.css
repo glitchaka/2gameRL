@@ -17,22 +17,22 @@
 .theme-midnight .tab-pane .tab-header-area .tab-header-background { -fx-background-color:#101823; } .theme-midnight .tab-pane .tab { -fx-background-color:#15202e; } .theme-midnight .tab-pane .tab:selected { -fx-background-color:#18344b; -fx-border-color:transparent transparent #48b8ff transparent; }
 .theme-midnight .status-bar { -fx-background-color:#0e1721; -fx-text-fill:#87a0b8; -fx-border-color:#263648 transparent transparent transparent; }
 
-.theme-graphite { -fx-base:#242424; -fx-background:#151515; -fx-control-inner-background:#242424; -fx-accent:#aeb8c2; -fx-focus-color:#aeb8c2; -fx-faint-focus-color:rgba(174,184,194,.15); -fx-text-fill:#eeeeee; }
-.theme-graphite.studio-root,.theme-graphite.tutorial-window,.theme-graphite.pixel-editor { -fx-background-color:#141414; }
-.theme-graphite .title-bar,.theme-graphite .menu-bar,.theme-graphite .main-toolbar,.theme-graphite .context-toolbar,.theme-graphite .side-panel,.theme-graphite .tutorial-navigation { -fx-background-color:#1b1b1b; -fx-border-color:#353535; }
-.theme-graphite .window-app-mark { -fx-background-color:#59636d; -fx-text-fill:white; }
-.theme-graphite .label { -fx-text-fill:#ededed; } .theme-graphite .muted { -fx-text-fill:#999999; } .theme-graphite .panel-title,.theme-graphite .tutorial-note { -fx-text-fill:#c8d0d8; }
-.theme-graphite .button,.theme-graphite .toggle-button { -fx-background-color:#292929; -fx-text-fill:#eeeeee; -fx-border-color:#454545; }
-.theme-graphite .button:hover,.theme-graphite .toggle-button:hover { -fx-background-color:#343434; -fx-border-color:#686868; }
-.theme-graphite .toggle-button:selected,.theme-graphite .workspace-button:selected { -fx-background-color:#3b434a; -fx-border-color:#aeb8c2; -fx-text-fill:white; }
-.theme-graphite .primary-button { -fx-background-color:#59636d; -fx-border-color:#9aa7b4; -fx-text-fill:white; }
-.theme-graphite .text-field,.theme-graphite .text-area,.theme-graphite .combo-box,.theme-graphite .list-view,.theme-graphite .tree-view,.theme-graphite .color-picker { -fx-background-color:#242424; -fx-border-color:#454545; -fx-text-fill:#f3f3f3; }
-.theme-graphite .text-area .content,.theme-graphite .tree-cell,.theme-graphite .list-cell { -fx-background-color:#202020; -fx-text-fill:#dddddd; }
-.theme-graphite .tree-cell:filled:selected,.theme-graphite .list-cell:filled:selected { -fx-background-color:#444c53; -fx-text-fill:white; }
-.theme-graphite .canvas-shell,.theme-graphite .scroll-pane>.viewport { -fx-background-color:#111111; }
-.theme-graphite .component-card { -fx-background-color:#252525; -fx-border-color:#454545; }
-.theme-graphite .tab-pane .tab-header-area .tab-header-background { -fx-background-color:#181818; } .theme-graphite .tab-pane .tab { -fx-background-color:#242424; } .theme-graphite .tab-pane .tab:selected { -fx-background-color:#343a3f; -fx-border-color:transparent transparent #aeb8c2 transparent; }
-.theme-graphite .status-bar { -fx-background-color:#191919; -fx-text-fill:#aaaaaa; -fx-border-color:#353535 transparent transparent transparent; }
+.theme-graphite { -fx-base:#1b1a18; -fx-background:#11110f; -fx-control-inner-background:#1c1b18; -fx-accent:#c9a45f; -fx-focus-color:#c9a45f; -fx-faint-focus-color:rgba(201,164,95,.16); -fx-text-fill:#ece9e2; }
+.theme-graphite.studio-root,.theme-graphite.tutorial-window,.theme-graphite.pixel-editor { -fx-background-color:linear-gradient(to bottom right,#181816,#11110f 62%,#0d0d0c); }
+.theme-graphite .title-bar,.theme-graphite .menu-bar,.theme-graphite .main-toolbar,.theme-graphite .context-toolbar,.theme-graphite .side-panel,.theme-graphite .tutorial-navigation { -fx-background-color:rgba(27,27,24,.88); -fx-border-color:rgba(255,255,255,.075); }
+.theme-graphite .window-app-mark { -fx-background-color:linear-gradient(to bottom,#d0ad68,#ad843e); -fx-text-fill:#17130d; }
+.theme-graphite .label { -fx-text-fill:#e3e0d9; } .theme-graphite .muted { -fx-text-fill:#96938c; } .theme-graphite .panel-title,.theme-graphite .tutorial-note { -fx-text-fill:#cfb77f; }
+.theme-graphite .button,.theme-graphite .toggle-button { -fx-background-color:rgba(255,255,255,.045); -fx-text-fill:#dedbd4; -fx-border-color:rgba(255,255,255,.11); }
+.theme-graphite .button:hover,.theme-graphite .toggle-button:hover { -fx-background-color:rgba(255,255,255,.085); -fx-border-color:rgba(255,255,255,.18); }
+.theme-graphite .toggle-button:selected,.theme-graphite .workspace-button:selected { -fx-background-color:rgba(201,164,95,.14); -fx-border-color:#c9a45f; -fx-text-fill:#fffaf0; }
+.theme-graphite .primary-button { -fx-background-color:linear-gradient(to bottom,#d3b06d,#ad833e); -fx-border-color:#dfbf7b; -fx-text-fill:#17130d; }
+.theme-graphite .text-field,.theme-graphite .text-area,.theme-graphite .combo-box,.theme-graphite .combo-box-base,.theme-graphite .list-view,.theme-graphite .tree-view,.theme-graphite .table-view,.theme-graphite .color-picker,.theme-graphite .spinner { -fx-background-color:rgba(255,255,255,.035); -fx-border-color:rgba(255,255,255,.105); -fx-text-fill:#efede8; }
+.theme-graphite .text-area .content,.theme-graphite .tree-cell,.theme-graphite .list-cell { -fx-background-color:transparent; -fx-text-fill:#d2cfc8; }
+.theme-graphite .tree-cell:filled:selected,.theme-graphite .list-cell:filled:selected,.theme-graphite .table-row-cell:filled:selected { -fx-background-color:rgba(201,164,95,.15); -fx-text-fill:#fff8e9; }
+.theme-graphite .canvas-shell,.theme-graphite .scroll-pane>.viewport,.theme-graphite .editor-scroll>.viewport { -fx-background-color:rgba(7,7,6,.48); }
+.theme-graphite .component-card { -fx-background-color:rgba(255,255,255,.035); -fx-border-color:rgba(255,255,255,.09); }
+.theme-graphite .tab-pane .tab-header-area .tab-header-background { -fx-background-color:rgba(19,19,17,.84); } .theme-graphite .tab-pane .tab { -fx-background-color:transparent; } .theme-graphite .tab-pane .tab:selected { -fx-background-color:rgba(201,164,95,.10); -fx-border-color:transparent transparent #c9a45f transparent; }
+.theme-graphite .status-bar { -fx-background-color:rgba(20,20,18,.88); -fx-text-fill:#97948c; -fx-border-color:rgba(255,255,255,.07) transparent transparent transparent; }
 
 .theme-light { -fx-base:#f4f6f8; -fx-background:#eef1f4; -fx-control-inner-background:#ffffff; -fx-accent:#147cc1; -fx-focus-color:#147cc1; -fx-faint-focus-color:rgba(20,124,193,.14); -fx-text-fill:#17212b; }
 .theme-light.studio-root,.theme-light.tutorial-window,.theme-light.pixel-editor { -fx-background-color:#edf1f5; }
