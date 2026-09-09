@@ -1,0 +1,25 @@
+name: Apply RC4 clarity transform
+
+on:
+  push:
+    branches:
+      - hotfix/2.3.0-rc4-studio-shell
+
+permissions:
+  contents: write
+
+jobs:
+  transform:
+    if: "${{ github.event.head_commit.message == 'chore: run rc4 clarity transform' }}"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Apply clarity pass
+        run: python3 .github/scripts/apply_rc4_clarity.py
+      - name: Commit transformed files
+        run: |
+          git config user.name "glitchaka"
+          git config user.email "82622846+glitchaka@users.noreply.github.com"
+          git add src/main/java/com/buttclapdev/twogamerl/studio/GraphicsEditorPane.java src/main/java/com/buttclapdev/twogamerl/studio/GraphicsBrowserEnhancements.java src/main/java/com/buttclapdev/twogamerl/studio/SceneEditorPane.java src/main/java/com/buttclapdev/twogamerl/studio/SceneTools222.java src/main/java/com/buttclapdev/twogamerl/studio/StudioControlPolish.java src/main/resources/com/buttclapdev/twogamerl/studio-rc4.css
+          git commit -m "fix: make rc4 browser and scene tools readable"
+          git push origin HEAD:hotfix/2.3.0-rc4-studio-shell
