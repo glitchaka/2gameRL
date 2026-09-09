@@ -25,13 +25,13 @@ public final class AppIcon {
         double s = size / 256.0;
 
         g.setFill(new LinearGradient(0, 0, 1, 1, true, CycleMethod.NO_CYCLE,
-                new Stop(0, Color.web("#071827")),
-                new Stop(.55, Color.web("#0A1223")),
-                new Stop(1, Color.web("#160B2B"))));
+                new Stop(0, Color.web("#282622")),
+                new Stop(.52, Color.web("#171613")),
+                new Stop(1, Color.web("#0D0D0B"))));
         g.fillRoundRect(3*s, 3*s, 250*s, 250*s, 46*s, 46*s);
 
-        g.setGlobalAlpha(.18);
-        g.setStroke(Color.web("#4CDFFF"));
+        g.setGlobalAlpha(.13);
+        g.setStroke(Color.web("#D0AD68"));
         g.setLineWidth(Math.max(1, .7*s));
         for (int i = 28; i < 240; i += 22) {
             g.strokeLine(i*s, 18*s, i*s, 238*s);
@@ -40,25 +40,25 @@ public final class AppIcon {
         g.setGlobalAlpha(1);
 
         g.setStroke(new LinearGradient(0, 0, 1, 1, true, CycleMethod.NO_CYCLE,
-                new Stop(0, Color.web("#43F4FF")),
-                new Stop(.55, Color.web("#3194FF")),
-                new Stop(1, Color.web("#C03BFF"))));
+                new Stop(0, Color.web("#E1C27E")),
+                new Stop(.55, Color.web("#BE944D")),
+                new Stop(1, Color.web("#74582D"))));
         g.setLineWidth(7*s);
         g.strokeRoundRect(8*s, 8*s, 240*s, 240*s, 42*s, 42*s);
 
-        // Small pixel fragments make the mark recognizable as a 2D/pixel-oriented engine.
-        g.setFill(Color.web("#38EAF7"));
+        // Small pixel fragments keep the mark recognizable as a 2D/pixel-oriented engine.
+        g.setFill(Color.web("#D9B66F"));
         g.fillRect(25*s, 75*s, 10*s, 10*s);
         g.fillRect(38*s, 62*s, 7*s, 7*s);
-        g.setFill(Color.web("#338DFF"));
+        g.setFill(Color.web("#9E7B42"));
         g.fillRect(219*s, 179*s, 9*s, 9*s);
         g.fillRect(229*s, 190*s, 6*s, 6*s);
-        g.setFill(Color.web("#D337FF"));
+        g.setFill(Color.web("#E6D6AE"));
         g.fillRect(216*s, 62*s, 7*s, 7*s);
 
         // Subtle isometric diamond behind the lettermark.
-        g.setGlobalAlpha(.38);
-        g.setStroke(Color.web("#28CBFF"));
+        g.setGlobalAlpha(.30);
+        g.setStroke(Color.web("#C8A35E"));
         g.setLineWidth(2*s);
         g.strokePolygon(new double[]{128*s, 202*s, 128*s, 54*s},
                         new double[]{41*s, 90*s, 218*s, 90*s}, 4);
@@ -67,12 +67,12 @@ public final class AppIcon {
         g.setTextAlign(TextAlignment.CENTER);
         g.setTextBaseline(VPos.CENTER);
         g.setFont(Font.font("Segoe UI", FontWeight.EXTRA_BOLD, 72*s));
-        g.setFill(Color.rgb(0, 0, 0, .62));
+        g.setFill(Color.rgb(0, 0, 0, .66));
         g.fillText("2RL", 131*s, 137*s);
         g.setFill(new LinearGradient(0, 0, 1, 0, true, CycleMethod.NO_CYCLE,
-                new Stop(0, Color.web("#35EEF5")),
-                new Stop(.38, Color.web("#EBF7FF")),
-                new Stop(1, Color.web("#B7D8FF"))));
+                new Stop(0, Color.web("#D6B46D")),
+                new Stop(.40, Color.web("#F2EEE4")),
+                new Stop(1, Color.web("#D0C3A2"))));
         g.fillText("2RL", 128*s, 133*s);
 
         WritableImage result = new WritableImage(size, size);
