@@ -15,7 +15,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '21'
@@ -61,7 +61,7 @@ jobs:
           $log = & "$env:JAVA_HOME\bin\java.exe" -cp "target\test-classes;target\app-input\*" com.buttclapdev.twogamerl.runtime.Release230RcRuntimeSmokeApp 2>&1 | Out-String
           Write-Host $log
           if ($LASTEXITCODE -ne 0) { throw "2.3.0 RC runtime smoke failed." }
-          foreach ($required in @('ANIMATOR_PARAMETERS_OK','BLEND_TREE_OK','ANIMATION_SET_OK','ANIMATION_REVERSE_FPS_OK','FRAME_HITBOX_HURTBOX_OK','CAMERA_ADVANCED_OK')) {
+          foreach ($required in @('RC_ANIMATOR_PARAM_BLEND_OK','RC_DIRECTIONAL_REVERSE_FPS_OK','RC_FRAME_HITBOX_HURTBOX_OK','RC_CAMERA_ADVANCED_OK')) {
             if ($log -notmatch [regex]::Escape($required)) { throw "Missing RC marker: $required" }
           }
 
