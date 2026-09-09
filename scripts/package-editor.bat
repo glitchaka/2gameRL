@@ -17,10 +17,15 @@ del /q "%VERSION_FILE%" >nul 2>nul
 if "%APP_VERSION%"=="" (echo ERROR: No se pudo obtener la version desde pom.xml.& exit /b 1)
 set "APP_VERSION=%APP_VERSION: =%"
 set "STUDIO_DIR=build\2gameRL Studio"
+set "ICON_FILE=build\2rl-icon.ico"
 if exist "%STUDIO_DIR%" rmdir /s /q "%STUDIO_DIR%"
 if not exist build mkdir build
+echo [2gameRL] Generando icono 2RL...
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File "%~dp0make-icon.ps1" -Output "%ICON_FILE%"
+if errorlevel 1 (echo ERROR: No se pudo generar el icono 2RL.& exit /b %errorlevel%)
+if not exist "%ICON_FILE%" (echo ERROR: No se genero %ICON_FILE%.& exit /b 1)
 echo [2gameRL] Creando 2gameRL Studio %APP_VERSION% para Windows...
-"%JAVA_HOME%\bin\jpackage.exe" --type app-image --input "target\app-input" --dest "build" --name "2gameRL Studio" --main-jar "2gameRL-Studio.jar" --main-class "com.buttclapdev.twogamerl.studio.DesktopLauncher" --app-version "%APP_VERSION%" --description "Editor visual 2gameRL"
+"%JAVA_HOME%\bin\jpackage.exe" --type app-image --input "target\app-input" --dest "build" --name "2gameRL Studio" --main-jar "2gameRL-Studio.jar" --main-class "com.buttclapdev.twogamerl.studio.DesktopLauncher" --app-version "%APP_VERSION%" --description "Editor visual 2gameRL" --icon "%ICON_FILE%"
 if errorlevel 1 exit /b %errorlevel%
 echo [2gameRL] Integrando toolchain JDK para exportar juegos desde el Studio...
 if exist "%STUDIO_DIR%\toolchain" rmdir /s /q "%STUDIO_DIR%\toolchain"
