@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - 'release/**'
+      - 'hotfix/2.3.0-rc3-resource-explorer'
   workflow_dispatch:
 
 permissions:
@@ -162,13 +163,15 @@ jobs:
           Stop-Process -Id $p.Id -Force
 
       - name: Archive validated RC Studio
+        id: version
         shell: pwsh
         run: |
           [xml]$pom = Get-Content pom.xml
           $version = $pom.project.version
+          "version=$version" >> $env:GITHUB_OUTPUT
           Compress-Archive -Path "build\2gameRL Studio" -DestinationPath "build\2gameRL-Studio-Windows-v$version.zip" -Force
 
       - uses: actions/upload-artifact@v4
         with:
           name: windows-rc-studio
-          path: build/2gameRL-Studio-Windows-v2.3.0-rc1.zip
+          path: build/2gameRL-Studio-Windows-v${{ steps.version.outputs.version }}.zip
