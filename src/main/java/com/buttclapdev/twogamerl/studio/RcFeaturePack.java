@@ -3,6 +3,7 @@ package com.buttclapdev.twogamerl.studio;
 import com.buttclapdev.twogamerl.model.AdvancedTileResolver;
 import com.buttclapdev.twogamerl.model.GameProject;
 import com.buttclapdev.twogamerl.model.GameProject.*;
+import com.buttclapdev.twogamerl.model.GameProject.MenuButton;
 import com.buttclapdev.twogamerl.model.ResourceIntegrity;
 import javafx.animation.AnimationTimer;
 import javafx.collections.FXCollections;

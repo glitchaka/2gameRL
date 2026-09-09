@@ -1,6 +1,7 @@
 package com.buttclapdev.twogamerl.studio;
 
 import com.buttclapdev.twogamerl.model.GameProject.*;
+import com.buttclapdev.twogamerl.model.GameProject.MenuButton;
 import com.buttclapdev.twogamerl.runtime.MenuEffects;
 import javafx.collections.FXCollections;
 import javafx.geometry.Insets;
