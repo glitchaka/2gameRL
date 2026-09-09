@@ -10,7 +10,7 @@ final class EditorShortcuts {
 
     static void install(Node node, Runnable copy, Runnable paste, Runnable delete) {
         node.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
-            if (isEditingText(event.getTarget())) return;
+            if (isEditingText(event)) return;
             if (event.isShortcutDown() && event.getCode() == KeyCode.C) {
                 if (copy != null) copy.run();
                 event.consume();
@@ -24,10 +24,10 @@ final class EditorShortcuts {
         });
     }
 
-    private static boolean isEditingText(Object target) {
-        if (!(target instanceof Node node)) return false;
-        for (Node current = node; current != null; current = current.getParent()) {
-            if (current instanceof TextInputControl) return true;
+    private static boolean isEditingText(KeyEvent event) {
+        if (event.getTarget() instanceof Node target) {
+            for (Node current=target;current!=null;current=current.getParent()) if (current instanceof TextInputControl) return true;
+            if (target.getScene()!=null && target.getScene().getFocusOwner() instanceof TextInputControl) return true;
         }
         return false;
     }
