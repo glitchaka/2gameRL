@@ -6,6 +6,7 @@ if errorlevel 1 exit /b %errorlevel%
 if "%JAVA_HOME%"=="" (echo ERROR: JAVA_HOME debe apuntar a un JDK 21 completo.& exit /b 1)
 if not exist "%JAVA_HOME%\bin\jpackage.exe" (echo ERROR: %JAVA_HOME% no contiene jpackage.exe.& exit /b 1)
 if not exist "%JAVA_HOME%\bin\java.exe" (echo ERROR: %JAVA_HOME% no contiene java.exe.& exit /b 1)
+if not exist "docs\2GAMESCRIPT_BIBLE.md" (echo ERROR: Falta docs\2GAMESCRIPT_BIBLE.md.& exit /b 1)
 set "APP_VERSION=%~1"
 if not "%APP_VERSION%"=="" goto version_ready
 set "VERSION_FILE=%TEMP%\2gamerl-version.txt"
@@ -27,6 +28,11 @@ if not exist "%ICON_FILE%" (echo ERROR: No se genero %ICON_FILE%.& exit /b 1)
 echo [2gameRL] Creando 2gameRL Studio %APP_VERSION% para Windows...
 "%JAVA_HOME%\bin\jpackage.exe" --type app-image --input "target\app-input" --dest "build" --name "2gameRL Studio" --main-jar "2gameRL-Studio.jar" --main-class "com.buttclapdev.twogamerl.studio.DesktopLauncher" --app-version "%APP_VERSION%" --description "Editor visual 2gameRL" --icon "%ICON_FILE%"
 if errorlevel 1 exit /b %errorlevel%
+echo [2gameRL] Integrando Biblia tecnica de 2GameScript...
+if not exist "%STUDIO_DIR%\manuals" mkdir "%STUDIO_DIR%\manuals"
+copy /y "docs\2GAMESCRIPT_BIBLE.md" "%STUDIO_DIR%\manuals\2GameScript-Biblia.md" >nul
+if errorlevel 1 (echo ERROR: No se pudo copiar la Biblia de 2GameScript al distribuible.& exit /b %errorlevel%)
+if not exist "%STUDIO_DIR%\manuals\2GameScript-Biblia.md" (echo ERROR: El distribuible no contiene la Biblia de 2GameScript.& exit /b 1)
 echo [2gameRL] Integrando toolchain JDK para exportar juegos desde el Studio...
 if exist "%STUDIO_DIR%\toolchain" rmdir /s /q "%STUDIO_DIR%\toolchain"
 robocopy "%JAVA_HOME%" "%STUDIO_DIR%\toolchain" /E /NFL /NDL /NJH /NJS /NC /NS >nul
@@ -35,6 +41,7 @@ if not exist "%STUDIO_DIR%\toolchain\bin\jpackage.exe" (echo ERROR: El paquete f
 if not exist "%STUDIO_DIR%\2gameRL Studio.exe" (echo ERROR: No se genero 2gameRL Studio.exe.& exit /b 1)
 echo.
 echo LISTO: %STUDIO_DIR%\2gameRL Studio.exe
+echo Incluye la Biblia de 2GameScript en manuals\2GameScript-Biblia.md.
 echo El runtime del Studio y el JDK usado para exportar juegos estan separados.
 endlocal
 exit /b 0
