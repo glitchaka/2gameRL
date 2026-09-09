@@ -1897,3 +1897,77 @@ stop / return
 ```
 
 Cada comando aparece documentado en capítulos anteriores con firma, semántica y al menos un ejemplo de uso. Esta Biblia es la referencia canónica de 2GameScript 2.2.2 y debe viajar embebida en 2gameRL Studio.
+
+---
+
+## Referencia técnica 2.2.2 — ParticlePreset y ParticleEmitter2D
+
+Esta sección es normativa para el hotfix 2.2.2. Un `ParticlePreset` es un recurso de proyecto; `ParticleEmitter2D` únicamente referencia y activa ese recurso.
+
+### ParticlePreset
+
+| Campo | Tipo | Rango/valores | Escritura | Semántica |
+|---|---|---|---|---|
+| `key` | string | ID único | solo al renombrar recurso | Referencia canónica usada por `ParticleEmitter2D.preset`. |
+| `renderMode` | enum | `PIXEL`, `SPRITE` | editor | `PIXEL` dibuja una primitiva; `SPRITE` usa `assetKey`. |
+| `assetKey` | string | asset/región o vacío | editor | Sprite usado cuando `renderMode=SPRITE`; si falta/no resuelve, runtime cae a la primitiva Pixel para no volver invisible el efecto. |
+| `shape` | enum | `SQUARE`, `CIRCLE`, `DIAMOND` | editor | Forma de la partícula cuando se renderiza como Pixel. |
+| `color` | ARGB | color | editor | Color de la primitiva Pixel. La opacidad final también multiplica este alfa. |
+| `rate` | number | `>= 0` | editor | Partículas por segundo en emisión continua. No se usa en Burst. |
+| `lifetime` | number | `> 0` | editor | Vida individual en segundos. |
+| `speed` | number | `>= 0` | editor | Velocidad base en unidades de mundo por segundo; cada nacimiento aplica variación aleatoria de 0.75× a 1.25×. |
+| `direction` | number | grados | editor | Dirección central. `0°` = derecha, `90°` = abajo, `-90°` = arriba, siguiendo el eje Y de pantalla del runtime. |
+| `spread` | number | `0..360` | editor | Cono angular total centrado en `direction`. |
+| `gravity` | number | cualquier real | editor | Aceleración vertical aplicada a cada partícula. Positivo = abajo. |
+| `startScale` / `endScale` | number | `>= 0` | editor | Interpolación lineal de escala durante la vida. |
+| `startOpacity` / `endOpacity` | number | `0..1` | editor | Interpolación lineal de opacidad durante la vida. |
+| `burst` | boolean | `true/false` | editor | `false`: continua; `true`: emite una vez al activarse. |
+| `burstCount` | integer | `>= 1` en Studio | editor | Cantidad solicitada por Burst. El runtime limita entradas anómalas a 10.000 nacimientos por activación. |
+| `localSpace` | boolean | `true/false` | editor | `true`: la posición de las partículas sigue al emisor después de nacer; `false`: quedan en coordenadas mundiales independientes. |
+
+Compatibilidad: presets guardados por una build 2.2.2 anterior no contienen `renderMode`, `shape` ni `color`. Al cargarlos, `renderMode` se infiere como `SPRITE` si ya tenían `assetKey`, o `PIXEL` si no lo tenían; `shape=SQUARE` y `color=WHITE` se aplican como defaults.
+
+### ParticleEmitter2D
+
+Propiedades de componente:
+
+```text
+enabled : boolean
+preset  : string
+playing : boolean
+```
+
+`preset` acepta el `key` canónico o un nombre resoluble del `ParticlePreset`. Un preset inexistente no detiene el runtime: se informa en el log y el estado interno del emisor se reinicia. Si posteriormente se asigna de nuevo el mismo preset válido, un Burst vuelve a dispararse correctamente.
+
+`playing=false` detiene nuevos nacimientos, pero no elimina partículas ya vivas. La transición `false -> true` reinicia el estado de Burst y su acumulador continuo.
+
+Ejemplo — Burst reiniciable:
+
+```2gs
+on start
+  ParticleEmitter2D.preset = explosion_fx
+  ParticleEmitter2D.playing = true
+  wait 0.2
+  ParticleEmitter2D.playing = false
+  wait 0.1
+  ParticleEmitter2D.playing = true
+end
+```
+
+Ejemplo — cambiar de preset y recuperarse de una referencia inválida:
+
+```2gs
+on event damageTaken
+  ParticleEmitter2D.preset = sparks_fx
+  ParticleEmitter2D.playing = true
+end
+```
+
+### Límites de seguridad del runtime 2.2.2
+
+El runtime mantiene como máximo 20.000 partículas vivas y acepta como máximo 10.000 nacimientos de un emisor en un frame/activación. Cuando se alcanza un límite, descarta emisiones nuevas y escribe un diagnóstico una sola vez por ciclo del emisor. Estos límites evitan que un proyecto corrupto o un valor extremo agote memoria o congele un juego exportado.
+
+### Particle Studio
+
+`Abrir Particle Studio` presenta una previsualización animada de dirección, dispersión, gravedad, escala, opacidad y forma. Los controles `Pixel`/`Sprite`, forma y color ya no son filtros temporales de preview: modifican el `ParticlePreset` real y se persisten dentro del `.2grl`.
+
