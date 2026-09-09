@@ -23,7 +23,7 @@ final class StudioEnhancements {
     private static final Set<Scene> PREVIEW_HOOKS=Collections.newSetFromMap(new WeakHashMap<>());
     private StudioEnhancements(){}
 
-    static void install(Stage stage,StudioApp app){ThemeManager.install();ThemeManager.apply(stage.getScene());installMenus(stage,app);RcFeaturePack.install(stage,app);installWorkspaceHooks(stage,app);StudioControlPolish.install(stage.getScene().getRoot());installScriptEditors(stage.getScene().getRoot(),app);TutorialPatch222.install(stage.getScene().getRoot(),stage);installPreviewCloseHook();}
+    static void install(Stage stage,StudioApp app){ThemeManager.install();ThemeManager.apply(stage.getScene());installMenus(stage,app);replacePreviewButton(stage.getScene().getRoot(),app);RcFeaturePack.install(stage,app);installWorkspaceHooks(stage,app);StudioControlPolish.install(stage.getScene().getRoot());installScriptEditors(stage.getScene().getRoot(),app);TutorialPatch222.install(stage.getScene().getRoot(),stage);installPreviewCloseHook();}
 
     private static void installMenus(Stage stage,StudioApp app){
         MenuBar bar=findFirst(stage.getScene().getRoot(),MenuBar.class);if(bar==null)return;
@@ -31,6 +31,11 @@ final class StudioEnhancements {
         bar.getMenus().removeIf(m->"Recursos".equals(m.getText())&&m.getItems().stream().anyMatch(i->i.getText()!=null&&i.getText().contains("Navegador global")));
         if(bar.getMenus().stream().noneMatch(m->"Apariencia".equals(m.getText()))){Menu appearance=new Menu("Apariencia");ToggleGroup group=new ToggleGroup();for(ThemeManager.Theme theme:ThemeManager.Theme.values()){RadioMenuItem item=new RadioMenuItem(theme.toString());item.setToggleGroup(group);item.setSelected(theme==ThemeManager.current());item.setOnAction(e->{ThemeManager.set(theme);app.status("Tema del Studio: "+theme+".");});appearance.getItems().add(item);}int helpIndex=-1;for(int i=0;i<bar.getMenus().size();i++)if("Ayuda".equals(bar.getMenus().get(i).getText())){helpIndex=i;break;}if(helpIndex<0)bar.getMenus().add(appearance);else bar.getMenus().add(helpIndex,appearance);}
         Menu help=bar.getMenus().stream().filter(m->"Ayuda".equals(m.getText())).findFirst().orElse(null);if(help!=null&&help.getItems().stream().noneMatch(i->"Biblia completa de 2GameScript".equals(i.getText()))){for(MenuItem item:help.getItems())if(item.getText()!=null&&item.getText().contains("Tutorial y referencia")){item.setText("Biblia técnica de 2GameScript");item.setAccelerator(KeyCombination.keyCombination("F2"));item.setOnAction(e->BibleDialog.show(stage));}MenuItem bible=new MenuItem("Biblia completa de 2GameScript");bible.setAccelerator(KeyCombination.keyCombination("F1"));bible.setOnAction(e->BibleDialog.show(stage));help.getItems().add(new SeparatorMenuItem());help.getItems().add(bible);}
+    }
+
+    private static void replacePreviewButton(Node root,StudioApp app){
+        if(root instanceof Button b&&b.getText()!=null&&b.getText().contains("Probar")){b.setOnAction(e->StudioPreviewWindow.show(app));return;}
+        if(root instanceof Parent p)for(Node child:p.getChildrenUnmodifiable())replacePreviewButton(child,app);
     }
 
     private static void installWorkspaceHooks(Stage stage,StudioApp app){if(!(stage.getScene().getRoot() instanceof BorderPane root))return;if(!(root.getCenter() instanceof StackPane workspace))return;Runnable installCurrent=()->{for(Node child:workspace.getChildren()){if(child instanceof GraphicsEditorPane pane)GraphicsBrowserEnhancements.install(pane,app);if(child instanceof SceneEditorPane pane)SceneTools222.install(pane,app);StudioControlPolish.install(child);installScriptEditors(child,app);TutorialPatch222.install(child,stage);}};installCurrent.run();workspace.getChildren().addListener((ListChangeListener<Node>)c->installCurrent.run());}
