@@ -26,3 +26,14 @@ La Biblia 2.2.2 se reemplaza por una especificación técnica canónica con even
 
 ## Compatibilidad
 Formato de proyecto 8 con lectura compatible de propiedades ausentes en proyectos anteriores.
+
+## Hotfix de partículas 2.2.2
+
+- Pixel/Sprite pasa a ser una propiedad real y persistente de `ParticlePreset`.
+- Pixel admite forma (`SQUARE`, `CIRCLE`, `DIAMOND`) y color ARGB.
+- Se corrige la semántica local/world-space usando la posición visual interpolada del emisor.
+- Se corrige el reinicio de Burst al reactivar `playing` y al recuperar el mismo preset después de una referencia inválida.
+- Dirección, dispersión, escala y opacidad usan la misma semántica en preview y runtime.
+- Se añaden límites defensivos y diagnóstico ante emisión extrema.
+- Se endurece el smoke de Windows para cubrir reinicio, recuperación de referencia, local/world, dirección y flood guard.
+

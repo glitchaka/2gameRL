@@ -19,11 +19,11 @@ final class Release222PersistenceTest {
         Asset skin=p.getAssets().get("placeholder-player.png");skin.sliceTop=2;skin.sliceRight=3;skin.sliceBottom=4;skin.sliceLeft=5;
         TextStyle style=p.getTextStyles().get("default-bubble");style.skinAssetKey=skin.key;
         SoundAsset sound=new SoundAsset("hit","Hit",new byte[]{82,73,70,70,0,0,0,0});sound.volume=.35;sound.loop=true;sound.category=SoundCategory.SFX;p.getSounds().put(sound.key,sound);
-        ParticlePreset particles=new ParticlePreset("test_particle","test_particle");particles.assetKey=skin.key;particles.rate=37;particles.lifetime=2.5;particles.speed=4.2;particles.direction=135;particles.spread=22;particles.gravity=-1.5;particles.startScale=1.7;particles.endScale=.4;particles.startOpacity=.85;particles.endOpacity=.1;particles.burst=true;particles.burstCount=44;particles.localSpace=false;p.getParticlePresets().put(particles.key,particles);
+        ParticlePreset particles=new ParticlePreset("test_particle","test_particle");particles.assetKey=skin.key;particles.renderMode=ParticleRenderMode.SPRITE;particles.shape=ParticleShape.DIAMOND;particles.color=new java.awt.Color(12,34,56,200);particles.rate=37;particles.lifetime=2.5;particles.speed=4.2;particles.direction=135;particles.spread=22;particles.gravity=-1.5;particles.startScale=1.7;particles.endScale=.4;particles.startOpacity=.85;particles.endOpacity=.1;particles.burst=true;particles.burstCount=44;particles.localSpace=false;p.getParticlePresets().put(particles.key,particles);
         Path file=temp.resolve("release222.2grl");ProjectIO.save(p,file);GameProject loaded=ProjectIO.load(file);
         Asset loadedSkin=loaded.getAssets().get(skin.key);assertEquals(2,loadedSkin.sliceTop);assertEquals(3,loadedSkin.sliceRight);assertEquals(4,loadedSkin.sliceBottom);assertEquals(5,loadedSkin.sliceLeft);assertEquals(skin.key,loaded.getTextStyles().get("default-bubble").skinAssetKey);
         SoundAsset loadedSound=loaded.getSounds().get("hit");assertNotNull(loadedSound);assertEquals(.35,loadedSound.volume,.0001);assertTrue(loadedSound.loop);assertEquals(SoundCategory.SFX,loadedSound.category);assertArrayEquals(sound.data,loadedSound.data);
-        ParticlePreset q=loaded.getParticlePresets().get("test_particle");assertNotNull(q);assertEquals(135,q.direction,.0001);assertEquals(22,q.spread,.0001);assertEquals(.85,q.startOpacity,.0001);assertEquals(.1,q.endOpacity,.0001);assertEquals(44,q.burstCount);assertFalse(q.localSpace);
+        ParticlePreset q=loaded.getParticlePresets().get("test_particle");assertNotNull(q);assertEquals(ParticleRenderMode.SPRITE,q.renderMode);assertEquals(ParticleShape.DIAMOND,q.shape);assertEquals(new java.awt.Color(12,34,56,200),q.color);assertEquals(135,q.direction,.0001);assertEquals(22,q.spread,.0001);assertEquals(.85,q.startOpacity,.0001);assertEquals(.1,q.endOpacity,.0001);assertEquals(44,q.burstCount);assertFalse(q.localSpace);
     }
 
     @Test void particleRenameMigratesComponentsPrefabsAndScripts(){
@@ -48,6 +48,6 @@ final class Release222PersistenceTest {
 
     @Test void cameraAndParticleDefaultsExpose222Properties(){
         ComponentDef camera=ComponentDef.preset("Camera2D");assertTrue(camera.properties.keySet().containsAll(java.util.Set.of("smoothSpeed","deadZoneX","deadZoneY","shakeIntensity","shakeDuration")));
-        GameProject p=GameProject.createDefault();ParticlePreset preset=new ParticlePreset("fx","fx");p.getParticlePresets().put(preset.key,preset);assertEquals(-90,preset.direction,.0001);assertSame(preset,p.particlePreset("fx"));
+        GameProject p=GameProject.createDefault();ParticlePreset preset=new ParticlePreset("fx","fx");p.getParticlePresets().put(preset.key,preset);assertEquals(-90,preset.direction,.0001);assertEquals(ParticleRenderMode.PIXEL,preset.renderMode);assertEquals(ParticleShape.SQUARE,preset.shape);assertEquals(java.awt.Color.WHITE,preset.color);ParticlePreset copy=p.deepCopy().getParticlePresets().get("fx");assertEquals(preset.renderMode,copy.renderMode);assertEquals(preset.shape,copy.shape);assertEquals(preset.color,copy.color);assertSame(preset,p.particlePreset("fx"));
     }
 }

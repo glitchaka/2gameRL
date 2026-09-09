@@ -44,13 +44,13 @@ jobs:
             if ($log -notmatch [regex]::Escape($required)) { throw "No se verifico el comportamiento 2.2: $required" }
           }
 
-      - name: 2.2.2 particles camera and prefab runtime smoke
+      - name: 2.2.2 aggressive particles camera and prefab runtime smoke
         shell: pwsh
         run: |
           $log = & "$env:JAVA_HOME\bin\java.exe" -cp "target\test-classes;target\app-input\*" com.buttclapdev.twogamerl.runtime.Release222RuntimeSmokeApp 2>&1 | Out-String
           Write-Host $log
           if ($LASTEXITCODE -ne 0) { throw "El smoke runtime 2.2.2 fallo." }
-          foreach ($required in @('PARTICLE_CONTINUOUS_OK','PARTICLE_MISSING_REF_DIAGNOSTIC_OK','PARTICLE_BURST_RESTART_OK','PREFAB_INSTANCE_COMPONENT_OK','CAMERA_222_OK')) {
+          foreach ($required in @('PARTICLE_CONTINUOUS_OK','PARTICLE_MISSING_REF_DIAGNOSTIC_OK','PARTICLE_BURST_RESTART_OK','PARTICLE_PRESET_RECOVERY_OK','PARTICLE_LOCAL_WORLD_OK','PARTICLE_DIRECTION_OK','PARTICLE_FLOOD_GUARD_OK','PREFAB_INSTANCE_COMPONENT_OK','CAMERA_222_OK')) {
             if ($log -notmatch [regex]::Escape($required)) { throw "No se verifico el comportamiento 2.2.2: $required" }
           }
 
@@ -193,7 +193,7 @@ jobs:
         with:
           name: windows-studio
           path: release-assets
-      - name: Create immutable version release
+      - name: Publish immutable version or refresh validated 2.2.2 hotfix
         env:
           GH_TOKEN: ${{ github.token }}
         shell: bash
@@ -205,8 +205,16 @@ jobs:
           )
           TAG="v${VERSION}"
           if git rev-parse -q --verify "refs/tags/$TAG" >/dev/null || gh release view "$TAG" >/dev/null 2>&1; then
-            echo "ERROR: $TAG ya existe. Incrementa la version antes de publicar otro cambio."
-            exit 1
+            if [[ "$VERSION" != "2.2.2" ]]; then
+              echo "ERROR: $TAG ya existe. Incrementa la version antes de publicar otro cambio."
+              exit 1
+            fi
+            echo "Refrescando v2.2.2 con el hotfix validado de partículas."
+            git tag -f "$TAG" "$GITHUB_SHA"
+            git push origin "refs/tags/$TAG" --force
+            gh release upload "$TAG" release-assets/* --clobber
+            gh release edit "$TAG" --target "$GITHUB_SHA" --title "2gameRL Studio 2.2.2 - Windows" --notes "Hotfix 2.2.2: sistema de partículas corregido (Pixel/Sprite persistente, color/forma Pixel, dirección, opacidad, local/world-space, reinicio de Burst, recuperación de presets inválidos y límites defensivos de emisión)."
+            exit 0
           fi
           EXTRA=()
           if [[ "$VERSION" == *"-rc"* || "$VERSION" == *"-RC"* ]]; then EXTRA+=(--prerelease); fi
