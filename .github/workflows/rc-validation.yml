@@ -5,6 +5,7 @@ on:
     branches:
       - 'release/**'
       - 'hotfix/2.3.0-rc3-resource-explorer'
+      - 'hotfix/2.3.0-rc4-ui-regressions'
   workflow_dispatch:
 
 permissions:

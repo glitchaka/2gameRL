@@ -1,0 +1,72 @@
+/* Popup surfaces are separate JavaFX windows. They need rules that match when the theme class is on the popup root itself. */
+.context-menu, .combo-box-popup .list-view {
+    -fx-background-insets: 0;
+    -fx-padding: 5;
+}
+.context-menu .menu-item > .label,
+.combo-box-popup .list-cell,
+.choice-box .context-menu .menu-item > .label {
+    -fx-opacity: 1;
+}
+
+.theme-graphite.context-menu, .theme-graphite .context-menu,
+.theme-graphite.combo-box-popup .list-view, .theme-graphite .combo-box-popup .list-view {
+    -fx-background-color: #23221f;
+    -fx-border-color: rgba(255,255,255,.14);
+}
+.theme-graphite.context-menu .menu-item > .label, .theme-graphite .context-menu .menu-item > .label,
+.theme-graphite.combo-box-popup .list-cell, .theme-graphite .combo-box-popup .list-cell { -fx-text-fill: #eeeae2; }
+.theme-graphite.context-menu .menu-item:focused, .theme-graphite .context-menu .menu-item:focused,
+.theme-graphite.combo-box-popup .list-cell:filled:hover, .theme-graphite .combo-box-popup .list-cell:filled:hover { -fx-background-color: rgba(201,164,95,.18); }
+
+.theme-light.context-menu, .theme-light .context-menu,
+.theme-light.combo-box-popup .list-view, .theme-light .combo-box-popup .list-view {
+    -fx-background-color: #ffffff;
+    -fx-border-color: #b8c4cf;
+}
+.theme-light.context-menu .menu-item > .label, .theme-light .context-menu .menu-item > .label,
+.theme-light.combo-box-popup .list-cell, .theme-light .combo-box-popup .list-cell { -fx-text-fill: #17212b; }
+.theme-light.context-menu .menu-item:focused, .theme-light .context-menu .menu-item:focused,
+.theme-light.combo-box-popup .list-cell:filled:hover, .theme-light .combo-box-popup .list-cell:filled:hover { -fx-background-color: #dcecf7; }
+.theme-light.context-menu .separator .line, .theme-light .context-menu .separator .line { -fx-border-color: #d5dde5; }
+
+.theme-ember.context-menu, .theme-ember .context-menu,
+.theme-ember.combo-box-popup .list-view, .theme-ember .combo-box-popup .list-view {
+    -fx-background-color: #2b1b17;
+    -fx-border-color: #704333;
+}
+.theme-ember.context-menu .menu-item > .label, .theme-ember .context-menu .menu-item > .label,
+.theme-ember.combo-box-popup .list-cell, .theme-ember .combo-box-popup .list-cell { -fx-text-fill: #fff0e8; }
+.theme-ember.context-menu .menu-item:focused, .theme-ember .context-menu .menu-item:focused,
+.theme-ember.combo-box-popup .list-cell:filled:hover, .theme-ember .combo-box-popup .list-cell:filled:hover { -fx-background-color: #623622; }
+
+.theme-amethyst.context-menu, .theme-amethyst .context-menu,
+.theme-amethyst.combo-box-popup .list-view, .theme-amethyst .combo-box-popup .list-view {
+    -fx-background-color: #251f32;
+    -fx-border-color: #5b4770;
+}
+.theme-amethyst.context-menu .menu-item > .label, .theme-amethyst .context-menu .menu-item > .label,
+.theme-amethyst.combo-box-popup .list-cell, .theme-amethyst .combo-box-popup .list-cell { -fx-text-fill: #f1eaff; }
+.theme-amethyst.context-menu .menu-item:focused, .theme-amethyst .context-menu .menu-item:focused,
+.theme-amethyst.combo-box-popup .list-cell:filled:hover, .theme-amethyst .combo-box-popup .list-cell:filled:hover { -fx-background-color: #4b326d; }
+
+.theme-forest.context-menu, .theme-forest .context-menu,
+.theme-forest.combo-box-popup .list-view, .theme-forest .combo-box-popup .list-view {
+    -fx-background-color: #192922;
+    -fx-border-color: #365c4b;
+}
+.theme-forest.context-menu .menu-item > .label, .theme-forest .context-menu .menu-item > .label,
+.theme-forest.combo-box-popup .list-cell, .theme-forest .combo-box-popup .list-cell { -fx-text-fill: #e9f7ef; }
+.theme-forest.context-menu .menu-item:focused, .theme-forest .context-menu .menu-item:focused,
+.theme-forest.combo-box-popup .list-cell:filled:hover, .theme-forest .combo-box-popup .list-cell:filled:hover { -fx-background-color: #28513f; }
+
+/* Custom undecorated secondary-window chrome. */
+.secondary-window-root { -fx-background-color: -fx-background; -fx-border-color: rgba(255,255,255,.14); -fx-border-width: 1; }
+.theme-light.secondary-window-root { -fx-border-color: #b8c4cf; }
+.secondary-title-bar { -fx-min-height: 34; -fx-pref-height: 34; -fx-padding: 0 0 0 8; -fx-background-color: rgba(18,18,17,.96); -fx-border-color: transparent transparent rgba(255,255,255,.08) transparent; }
+.theme-light .secondary-title-bar { -fx-background-color: #f3f6f8; -fx-border-color: transparent transparent #cbd4dc transparent; }
+.secondary-title-text { -fx-font-weight: bold; }
+.secondary-window-control { -fx-min-width: 42; -fx-pref-width: 42; -fx-max-width: 42; -fx-min-height: 33; -fx-pref-height: 33; -fx-background-radius: 0; -fx-border-radius: 0; -fx-background-color: transparent; -fx-border-color: transparent; }
+.secondary-window-control:hover { -fx-background-color: rgba(255,255,255,.08); }
+.theme-light .secondary-window-control:hover { -fx-background-color: #e4eaef; }
+.secondary-window-close:hover { -fx-background-color: #b8443f; -fx-text-fill: white; }

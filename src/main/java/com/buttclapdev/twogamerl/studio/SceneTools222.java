@@ -25,10 +25,10 @@ final class SceneTools222 {
 
     static void install(SceneEditorPane pane,StudioApp app){
         if(Boolean.TRUE.equals(pane.getProperties().get(INSTALLED)))return;pane.getProperties().put(INSTALLED,true);
-        HBox toolbar=findByStyle(pane,HBox.class,"context-toolbar");Canvas base=findFirst(pane,Canvas.class);if(toolbar==null||base==null)return;
+        HBox toolbar=findByStyle(pane,HBox.class,"scene-tools-row"),options=findByStyle(pane,HBox.class,"scene-options-row");Canvas base=findFirst(pane,Canvas.class);if(toolbar==null||base==null)return;
         ToggleGroup group=null;for(Node n:toolbar.getChildren())if(n instanceof ToggleButton b&&b.getToggleGroup()!=null){group=b.getToggleGroup();break;}if(group==null)group=new ToggleGroup();
         ToggleButton line=new ToggleButton("Línea"),rect=new ToggleButton("Rectángulo"),pick=new ToggleButton("Cuentagotas"),stamp=new ToggleButton("Stamp");for(ToggleButton b:List.of(line,rect,pick,stamp))b.setToggleGroup(group);ComboBox<StampPattern>stampPicker=new ComboBox<>();stampPicker.setPromptText("Patrón…");stampPicker.setPrefWidth(150);Runnable refreshStamps=()->{StampPattern selected=stampPicker.getValue();stampPicker.setItems(javafx.collections.FXCollections.observableArrayList(app.project().getStampPatterns().values()));if(selected!=null)stampPicker.getSelectionModel().select(selected);};refreshStamps.run();
-        int insert=Math.max(0,toolbar.getChildren().size()-4);toolbar.getChildren().addAll(insert,List.of(line,rect,pick,stamp,stampPicker));
+        toolbar.getChildren().addAll(line,rect,pick,stamp);if(options!=null){int insert=Math.max(0,options.getChildren().size()-3);options.getChildren().addAll(insert,List.of(new Label("Patrón"),stampPicker));}else toolbar.getChildren().add(stampPicker);
         int[]start={0,0};boolean[]armed={false};
         base.addEventFilter(MouseEvent.MOUSE_PRESSED,e->{if(!selected(line,rect,pick,stamp)||e.getButton()!=javafx.scene.input.MouseButton.PRIMARY)return;int x=cell(pane,app,e.getX()),y=cell(pane,app,e.getY());if(pick.isSelected()){eyedrop(pane,app,x,y);e.consume();return;}if(stamp.isSelected()){paintStamp(pane,app,stampPicker.getValue(),x,y);invokeRedraw(pane);refreshStamps.run();e.consume();return;}start[0]=x;start[1]=y;armed[0]=true;e.consume();});
         base.addEventFilter(MouseEvent.MOUSE_DRAGGED,e->{if(selected(line,rect,pick,stamp))e.consume();});

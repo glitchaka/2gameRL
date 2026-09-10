@@ -1,0 +1,141 @@
+/* 2gameRL Studio RC4 — desktop control layer. */
+
+.studio-root, .window-frame { -fx-font-family: "Segoe UI Variable", "Segoe UI", sans-serif; }
+
+/* Commands ---------------------------------------------------------------- */
+.modern-command {
+    -fx-background-insets: 0;
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+    -fx-padding: 6 10;
+    -fx-graphic-text-gap: 7;
+    -fx-cursor: hand;
+}
+.studio-glyph {
+    -fx-fill: transparent;
+    -fx-stroke: -fx-text-fill;
+    -fx-stroke-width: 1.65;
+    -fx-stroke-line-cap: round;
+    -fx-stroke-line-join: round;
+}
+.main-toolbar .modern-command,
+.context-toolbar .modern-command,
+.resource-toolbar .modern-command {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+}
+.main-toolbar .modern-command:hover,
+.context-toolbar .modern-command:hover,
+.resource-toolbar .modern-command:hover {
+    -fx-background-color: rgba(255,255,255,.07);
+    -fx-border-color: rgba(255,255,255,.08);
+}
+.main-toolbar .workspace-command {
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
+    -fx-padding: 6 11;
+}
+.main-toolbar .workspace-command:selected {
+    -fx-background-color: rgba(201,164,95,.14);
+    -fx-border-color: rgba(201,164,95,.62);
+}
+.scene-tool-button {
+    -fx-min-height: 32; -fx-pref-height: 32;
+    -fx-padding: 5 9;
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-graphic-text-gap: 6;
+}
+.scene-tool-button:hover { -fx-background-color: rgba(255,255,255,.07); }
+.scene-tool-button:selected { -fx-background-color: rgba(201,164,95,.16); -fx-border-color: rgba(201,164,95,.68); }
+.primary-button.modern-command { -fx-font-weight: 700; }
+
+/* Inputs ------------------------------------------------------------------ */
+.combo-box, .combo-box-base, .text-field, .spinner, .color-picker {
+    -fx-background-radius: 5;
+    -fx-border-radius: 5;
+}
+.combo-box .arrow-button, .spinner .increment-arrow-button, .spinner .decrement-arrow-button {
+    -fx-background-color: transparent;
+}
+.combo-box-popup .list-view { -fx-padding: 4; }
+.combo-box-popup .list-cell { -fx-padding: 7 9; -fx-background-radius: 4; }
+
+/* Resource browser -------------------------------------------------------- */
+.asset-explorer {
+    -fx-background-color: rgba(8,8,7,.24);
+    -fx-border-color: rgba(255,255,255,.07);
+    -fx-border-width: 1;
+    -fx-border-radius: 7;
+    -fx-background-radius: 7;
+}
+.resource-browser-split { -fx-background-color: transparent; -fx-padding: 0; }
+.resource-browser-split > .split-pane-divider { -fx-background-color: rgba(255,255,255,.07); -fx-padding: 0 0 0 1; }
+.resource-toolbar {
+    -fx-padding: 6 8;
+    -fx-background-color: rgba(255,255,255,.025);
+    -fx-border-color: transparent transparent rgba(255,255,255,.065) transparent;
+}
+.resource-command { -fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 5 8; }
+.resource-command:hover { -fx-background-color: rgba(255,255,255,.06); }
+.resource-sidebar { -fx-background-color: rgba(0,0,0,.13); }
+.resource-sidebar-title { -fx-font-size: 10px; -fx-font-weight: 700; -fx-text-fill: #8e897f; -fx-padding: 2 7 4 7; }
+.resource-places { -fx-background-color: transparent; -fx-border-color: transparent; }
+.resource-places .list-cell { -fx-background-color: transparent; -fx-padding: 7 8; -fx-background-radius: 5; -fx-graphic-text-gap: 9; }
+.resource-places .list-cell:hover { -fx-background-color: rgba(255,255,255,.045); }
+.resource-places .list-cell:selected { -fx-background-color: rgba(201,164,95,.12); -fx-text-fill: #f5ead5; }
+.resource-folder-icon { -fx-fill: #b8914f; -fx-stroke: #d9b86f; -fx-stroke-width: .55; }
+.favorite-icon { -fx-fill: #c9a45f; -fx-stroke: transparent; }
+.breadcrumb-button { -fx-background-color: transparent; -fx-border-color: transparent; -fx-padding: 4 5; -fx-text-fill: #c7c2b8; }
+.breadcrumb-button:hover { -fx-background-color: rgba(255,255,255,.06); -fx-text-fill: #f0eadf; }
+.resource-details {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent;
+    -fx-table-cell-border-color: transparent;
+    -fx-padding: 0;
+}
+.resource-details .column-header-background { -fx-background-color: rgba(255,255,255,.025); }
+.resource-details .column-header { -fx-background-color: transparent; -fx-border-color: transparent transparent rgba(255,255,255,.06) transparent; -fx-padding: 3 0; }
+.resource-details .column-header .label { -fx-alignment: CENTER_LEFT; -fx-font-size: 11px; -fx-text-fill: #8f8a81; -fx-font-weight: 600; }
+.resource-details .table-row-cell { -fx-background-color: transparent; -fx-border-color: transparent; -fx-cell-size: 38px; }
+.resource-details .table-row-cell:odd { -fx-background-color: rgba(255,255,255,.012); }
+.resource-details .table-row-cell:hover { -fx-background-color: rgba(255,255,255,.04); }
+.resource-details .table-row-cell:selected { -fx-background-color: rgba(201,164,95,.13); }
+.resource-details .table-cell { -fx-border-color: transparent; -fx-padding: 5 8; -fx-alignment: CENTER_LEFT; }
+.resource-details .table-row-cell.drop-target { -fx-background-color: rgba(201,164,95,.18); -fx-border-color: #c9a45f; }
+.resource-grid-root, .resource-scroll, .resource-scroll > .viewport { -fx-background-color: transparent; }
+.resource-folder-rows { -fx-padding: 0 0 5 0; }
+.resource-folder-strip { -fx-padding: 7 9; -fx-background-radius: 5; -fx-border-radius: 5; -fx-cursor: hand; }
+.resource-folder-strip:hover { -fx-background-color: rgba(255,255,255,.04); }
+.resource-folder-strip.drop-target { -fx-background-color: rgba(201,164,95,.18); -fx-border-color: #c9a45f; }
+.resource-grid { -fx-background-color: transparent; }
+.resource-asset-tile { -fx-padding: 8; -fx-background-color: transparent; -fx-border-color: transparent; -fx-border-width: 1; -fx-background-radius: 6; -fx-border-radius: 6; -fx-cursor: hand; }
+.resource-asset-tile:hover { -fx-background-color: rgba(255,255,255,.045); }
+.resource-asset-tile.selected { -fx-background-color: rgba(201,164,95,.13); -fx-border-color: rgba(201,164,95,.65); }
+.asset-thumbnail { -fx-background-color: rgba(0,0,0,.22); -fx-border-color: rgba(255,255,255,.07); -fx-background-radius: 4; -fx-border-radius: 4; }
+.asset-thumbnail-fallback { -fx-text-fill: #77736c; -fx-font-size: 9px; -fx-font-weight: 700; }
+.resource-file-name { -fx-text-fill: #e9e5dc; -fx-font-weight: 600; }
+.resource-file-type, .resource-path, .resource-status { -fx-text-fill: #8d8981; -fx-font-size: 11px; }
+.favorite-badge { -fx-text-fill: #d5ad5d; -fx-font-size: 12px; }
+
+/* Graphite Brass refinements --------------------------------------------- */
+.theme-graphite .button, .theme-graphite .toggle-button {
+    -fx-background-color: rgba(255,255,255,.035);
+    -fx-border-color: rgba(255,255,255,.095);
+    -fx-background-radius: 6;
+    -fx-border-radius: 6;
+}
+.theme-graphite .button:hover, .theme-graphite .toggle-button:hover { -fx-background-color: rgba(255,255,255,.07); -fx-border-color: rgba(255,255,255,.14); }
+.theme-graphite .modern-command { -fx-background-color: transparent; -fx-border-color: transparent; }
+.theme-graphite .modern-command:hover { -fx-background-color: rgba(255,255,255,.07); }
+.theme-graphite .primary-button { -fx-background-color: linear-gradient(to bottom,#d3b06d,#ad833e); -fx-border-color: #dfbf7b; -fx-text-fill: #17130d; }
+.theme-graphite .primary-button .studio-glyph { -fx-stroke: #17130d; }
+
+/* RC4 clarity pass -------------------------------------------------------- */
+.scene-command-area { -fx-background-color: rgba(0,0,0,.12); -fx-border-color: transparent transparent rgba(255,255,255,.07) transparent; }
+.scene-tools-row { -fx-spacing: 4; }
+.scene-options-row { -fx-background-color: rgba(255,255,255,.018); }
+.scene-tools-row .toggle-button { -fx-text-overrun: CLIP; -fx-min-width: -1; -fx-pref-width: -1; -fx-max-width: Infinity; }
+.scene-tools-row .scene-tool-button:selected { -fx-background-color: rgba(201,164,95,.17); -fx-border-color: rgba(201,164,95,.62); }
+.resource-details .table-row-cell { -fx-cell-size: 40px; }
+.resource-browser-split .split-pane-divider { -fx-padding: 0 0 0 1; }
